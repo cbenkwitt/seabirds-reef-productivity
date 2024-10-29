@@ -1,0 +1,21 @@
+Island,Site,Transect,herb_biomass_kg_ha,herb_productivity_kg_ha_day
+Aride,Site 1,1,1385.6,1.151013883
+Aride,Site 1,2,897.1,0.520767221
+Aride,Site 1,3,648.8,0.306415354
+Aride,Site 1,4,729.8,0.292508217
+Cousine,Site 1,1,637.6,0.302175623
+Cousine,Site 1,2,924.6,0.403493787
+Cousine,Site 1,3,831.9,0.389063268
+Cousine,Site 1,4,167.1,0.25891225
+Felicite,Site 1,1,173.4,0.184553642
+Felicite,Site 1,2,141.8,0.249487863
+Felicite,Site 1,3,90,0.130136118
+Felicite,Site 1,4,231.4,0.387292591
+Fregate,High,1,317.8,0.219541357
+Fregate,High,2,518.9,0.29675275
+Fregate,High,3,972.8,1.022195825
+Fregate,High,4,331.2,0.276050405
+Fregate,Low,1,304,0.347639241
+Fregate,Low,2,302.1,0.402252674
+Fregate,Low,3,379.5,0.377085374
+Fregate,Low,4,278.3,0.244128655

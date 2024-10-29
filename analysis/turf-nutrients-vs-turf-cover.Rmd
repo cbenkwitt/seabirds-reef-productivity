@@ -1,0 +1,256 @@
+---
+title: "Turf nutrients vs turf cover"
+author: "CEB"
+date: '2024-09-04'
+output: html_document
+---
+
+#load packages
+```{r}
+#for everything:
+library(tidyverse)
+
+#for bayesian analysis:
+library(brms)
+library(tidybayes)
+
+#for plotting:
+library(cowplot)
+library(magick)
+
+library(jtools)
+
+
+
+```
+
+
+###set plot theme
+```{r}
+theme_casey<-
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        text = element_text(size = 14, family = "Arial"),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+        )
+
+theme_set(theme_casey) 
+  
+```
+
+
+#load data----
+```{r}
+
+#turf cover----
+turf_cover_dat<-read.csv("../data/seychelles_turf_cover.csv")
+str(turf_cover_dat)
+
+##turf isotopes----
+turf_iso_dat<-read.csv("../data/seychelles_isotope_data.csv")%>%
+   filter(Sample.Type == "Turf algae")
+str(turf_iso_dat)
+
+
+```
+
+
+##combine data----
+```{r}
+
+#get mean turf n15 per site, then combine with turf cover data:
+turf_n15_site<-
+  turf_iso_dat%>%
+  group_by(Island, Site)%>%
+  summarize(mean_turf_n15 = mean(N15, na.rm = TRUE),
+            se_turf_n15 = sd(N15, na.rm = TRUE)/sqrt(length(N15)))%>%
+  ungroup()
+turf_n15_site
+
+turf_cover_iso_dat<-left_join(turf_cover_dat, turf_n15_site,
+               by = c("Island", "Site"))
+
+turf_cover_iso_dat
+
+#save for use elsewhere----
+#write.csv(turf_cover_iso_dat, "../data/seychelles_turf_cover_isotopes_by_transect.csv")
+
+```
+
+
+
+####Bayesian analysis based on DAGs - Hypothesis 4: effect of turf nutrients on turf cover----
+```{r}
+
+#add column for scaled, log data:----
+turf_cover_iso_dat_cs<-
+  turf_cover_iso_dat%>%
+  mutate(turf_n15_cs = base::scale(mean_turf_n15, center = TRUE, scale = TRUE),
+         turf_n15_c = base::scale(mean_turf_n15, center = TRUE, scale = FALSE),
+         log_turf_cover = log(turf_prop))
+turf_cover_iso_dat_cs
+
+#brms models------
+#see previous file for other options/build-up
+
+#log-log model, uninformative prior: 
+turf_cover_nutrients_brms<-
+  brm(
+ log_turf_cover~turf_n15_c + (1|Island),
+  data = turf_cover_iso_dat_cs, 
+  iter = 3000, warmup = 1000, chains = 4, cores = 4,
+   control = list(adapt_delta = 0.999, max_treedepth = 15), 
+      file = "../outputs/brms/turf_cover_nutrients_brms") #all good
+print(turf_cover_nutrients_brms) #worked
+
+pp_check(turf_cover_nutrients_brms) #looks good
+plot(turf_cover_nutrients_brms) #looks good
+
+hypothesis(turf_cover_nutrients_brms, "turf_n15_c>0") 
+  #hypothesis              est      error     lower     upper       evidence ratio        posterior probability
+  #(turf_n15_c) > 0       	-0.3  	0.33    	-0.84     	0.22	      0.18                    	0.15
+#so if anything, NEGATIVE effect of turf nutrients on turf cover
+
+
+#no need to set more informative priors because sampling worked well, plus don't have good prior knowledge for this. So proceed with this model
+
+#extract some values:------
+turf_cover_nutrients_brms %>%
+  spread_draws(b_turf_n15_c) %>%
+  median_hdi(b_turf_n15_c)
+#b_log_seabird      lower       upper     width   point     interval
+# -0.301251       	-0.9531769	0.3893436		0.95	median	hdi
+
+#because Y is transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
+turf_cover_nutrients_brms %>%
+  spread_draws(b_turf_n15_c) %>%
+  median_hdi(exp(b_turf_n15_c))
+#0.739892	0.3179007	1.307303	0.95	median	hdi
+
+#so for each one unit increase in turf nutrients, turf cover decreases by a factor of 0.738
+
+#equivalent to: 
+1-0.739892 #0.260108 that's a 26.0% decrease
+1-0.3179007 #0.6820993 that's a 68.2% decrease
+1.307303-1 # 0.307303 that's a 30.7% increase
+
+```
+
+
+#model plots-----
+```{r}
+###plots -
+#plot partialized residuals total effect-----
+me_cover_total<-conditional_effects(turf_cover_nutrients_brms, prob = .75, effects = 'turf_n15_c', plot = FALSE)[[1]]
+
+#extract partialized residuals
+p_cover_total<-partialize(turf_cover_nutrients_brms, vars= "turf_n15_c",  data = turf_cover_iso_dat_cs)
+
+
+
+#back-transform growth, centered/scaled n15:----
+#get data for un-scaling and centering:
+mean(turf_cover_iso_dat_cs$mean_turf_n15, na.rm=TRUE) #4.653333
+
+me_turf_cover_total_unscale<-
+  me_cover_total%>%
+  mutate(mean_turf_n15 = turf_n15_c  + 4.653333 ) # + mean
+
+
+turf_cover_part_plot<-
+p_cover_total %>%
+  ggplot(aes(x = mean_turf_n15, y = exp(log_turf_cover))) +
+     geom_point(color = "#0072B2", fill = "#0072B2", alpha = 0.4, size = 3) + #, size = .8
+    # geom_jitter(color = "#0072B2", fill = "#0072B2", width=0, height = 0.02, alpha = 0.4, size = 3) + #, size = .8
+    geom_ribbon(data = me_turf_cover_total_unscale, aes(ymin = exp(lower__), ymax=exp(upper__)), alpha = .2, fill = "#0072B2")+
+    geom_line(data = me_turf_cover_total_unscale, aes(x = mean_turf_n15, y = exp(estimate__)), lwd = 1.2, colour = "#0072B2") +
+xlab(expression(paste("Turf ", delta^15, "N"))) + 
+ # ylab(bquote(Turf~growth~(mm~day^-1)))+
+   ylab("Turf proportional cover")+
+  theme_bw()+
+    guides(size = "none", colour = "none",  fill = guide_legend(title="Confidence level")) + 
+    theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+              # text = element_text(size = 14),
+        legend.position='none')#,
+      #  plot.margin = unit(c(.5,.1,.1,.1), "cm"))+#leave room for label
+# labs(subtitle = "(b) Turf cover", size = 10)
+turf_cover_part_plot
+
+
+
+#posterior prediction plots ------
+turf_cover_post_plot<-
+turf_cover_nutrients_brms %>%
+  spread_draws(b_turf_n15_c) %>%
+  ggplot(aes(y = 0, x = b_turf_n15_c, fill = "#0072B2")) +
+  stat_halfeye(point_interval=median_hdi, .width=c(.95, .75),  slab_alpha = 0.6, fatten_point = 2) + 
+  scale_fill_manual(values = alpha(c("#0072B2"),0.3))+
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme_bw() + 
+  xlab("")+
+  ylab("")+
+ # scale_x_continuous( breaks=c(0,1,2), labels =c("0.0", "1.0", "2.0"))+
+#  scale_x_continuous(limits = c(0,5), breaks=seq(0, 5,2.5))+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        legend.position = "none",  
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA),
+             #  text = element_text(size = 14),
+          axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+turf_cover_post_plot
+
+
+
+##combine and save---------
+turf.cover.plot.with.inset <-
+  ggdraw() +
+  draw_plot(turf_cover_part_plot) +
+  draw_plot(turf_cover_post_plot, x = 0.63, y = .64, width = .35, height = .35)
+turf.cover.plot.with.inset
+
+# save panel----
+#ggsave(filename = "../outputs/figures/figure3_turf_cover_by_n15.png", 
+#       plot = turf.cover.plot.with.inset,  width = 11,       height = 7.5,   units = "cm",     dpi = 300)
+
+
+
+```
+
+
+###combined figure 3: turf n15 effects on turf cover and turf pp-------
+```{r}
+#get pp plot from other R file: turf-nutrients-vs-turf-productivity: turf.pp.n15.plot.with.inset2
+
+fig3<-plot_grid(turf.pp.n15.plot.with.inset, turf.cover.plot.with.inset) #, labels = c("(a) Turf productivity", "(b) Turf cover"),
+               #label_size = 12, label_fontface = "plain", # hjust = -1,   vjust = 1,
+              #  scale = .95)
+fig3
+
+
+#ggsave(filename = "../outputs/figures/figure3_combined.png", 
+#       plot = fig3,
+#       width = 22, 
+#       height = 10,
+#       units = "cm",
+#       dpi = 300)
+
+
+
+ggsave(filename = "../outputs/figures/figure3_combined.pdf", 
+       plot = fig3,
+       width = 25, 
+       height = 22,
+       units = "cm",
+       dpi = 300)
+
+
+```
+

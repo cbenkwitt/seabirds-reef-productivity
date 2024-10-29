@@ -1,0 +1,571 @@
+---
+title: "Seabirds vs nutrients"
+author: "CEB"
+date: '2024-09-04'
+output: html_document
+---
+
+#load packages
+```{r}
+#for everything:
+library(tidyverse)
+
+#for bayesian analysis:
+library(brms)
+library(tidybayes)
+
+#for partialize:
+library(jtools)
+
+#for combining plots:
+library(cowplot)
+
+
+```
+
+
+###set plot theme
+```{r}
+theme_casey<-
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        text = element_text(size = 14, family = "Arial"),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+        )
+
+theme_set(theme_casey) 
+  
+```
+
+
+#load data
+```{r}
+
+#seabird data----
+sey_sb_dat<-read.csv("../data/seychelles_seabird_biomass.csv", stringsAsFactors = TRUE) 
+str(sey_sb_dat)
+
+#isotope data----
+iso_dat<-read.csv("../data/seychelles_isotope_data.csv")
+str(iso_dat)
+
+
+```
+
+
+#combine data
+```{r}
+
+sey_iso_sb_dat<-
+  left_join(dplyr::select(sey_sb_dat, c("Island", "Side", "Site", "seabird.biomass.total")),
+                          iso_dat, by = c("Island", "Site"))
+sey_iso_sb_dat
+
+#check:
+nrow(sey_iso_sb_dat)
+nrow(iso_dat)
+#matches!
+
+#create seperate data for turf and leaves----
+leaf_n15_dat<-
+  sey_iso_sb_dat%>%
+  filter(Sample.Type == "Leaves")%>%
+  select(-Turf.cage.number)
+  
+turf_n15_dat<-
+  sey_iso_sb_dat%>%
+  filter(Sample.Type == "Turf algae")
+
+```
+
+
+##Bayesian analysis based on DAGs - Hypothesis 1: effect of seabirds on leaf n15
+```{r}
+
+#add column for log and centered/scaled data:----
+leaf_n15_dat_wlog<-
+  leaf_n15_dat%>%
+  mutate(log_seabird = log(seabird.biomass.total+1),
+         log_n15 = log(N15))%>%
+  mutate(log_seabird_cs = base::scale(log_seabird, center = TRUE, scale = TRUE),
+         log_seabird_c = base::scale(log_seabird, center = TRUE, scale = FALSE))
+leaf_n15_dat_wlog
+
+
+#brms models------
+#see previous file for other options/build-up
+
+#log-log model, uninformative prior: 
+sb_leaf_logn15_brms<-
+  brm(
+ log_n15~log_seabird_c + (1|Island),
+  data = leaf_n15_dat_wlog, 
+  iter = 3000, warmup = 1000, chains = 4, cores = 4,
+   control = list(adapt_delta = 0.999, max_treedepth = 15), 
+ # prior = leaf_prior_log,
+ #   sample_prior="yes",
+      file = "../outputs/brms/sb_leaf_logn15_brms") #all good
+print(sb_leaf_logn15_brms)
+
+
+# do some checks:
+pp_check(sb_leaf_logn15_brms) #looks great
+plot(sb_leaf_logn15_brms) #looks great
+
+plot(hypothesis(sb_leaf_logn15_brms, "log_seabird_c>0"))
+hypothesis(sb_leaf_logn15_brms, "log_seabird_c>0")
+#looks great:
+#hypothesis                est      error     lower     upper       evidence ratio        posterior probability
+#(log_seabird_cs) > 0	    0.17        	0.03	    0.12  	0.22      	Inf     	1	
+
+
+#log-log model, informative prior----
+###set prior-----
+leaf_prior_log<-
+     set_prior("normal(.1, .5)", class = "b", coef = "log_seabird_c")+ #definitely expect positive effect
+  #Benkwitt et al. 2021 ProcB: log(biomass) absolute effect on leaf n15 median = 1.01	95% CI = 0.1, 1.88...so logged ~.1
+    set_prior("normal(1.6, .1)", class = "Intercept")
+#Benkwitt et al. 2021 ProcB: leaf n15 range approx -2 to 10. Graham et al. 2018 range ~ -5 to 15. Benkwitt et al. Current Biology ~ -5 to 15. 
+  #so logged = 1.61
+
+
+sb_leaf_logn15_brms_wprior<-
+  brm(
+ log_n15~log_seabird_c + (1|Island),
+  data = leaf_n15_dat_wlog, 
+  iter = 3000, warmup = 1000, chains = 4, cores = 4,
+   control = list(adapt_delta = 0.999, max_treedepth = 15), 
+  prior = leaf_prior_log,
+    sample_prior="yes",
+      file = "../outputs/brms/sb_leaf_logn15_brms_wprior") #all good
+print(sb_leaf_logn15_brms_wprior)
+
+
+plot(hypothesis(sb_leaf_logn15_brms_wprior, "log_seabird_c>0"))
+hypothesis(sb_leaf_logn15_brms_wprior, "log_seabird_c>0")
+#looks great, and similar to default**
+#hypothesis                est      error     lower     upper       evidence ratio       posterior probability
+#(log_seabird_c) > 0      	0.16	    0.03    	0.11    	0.21        	Inf	             1	
+
+
+# do some checks:
+pp_check(sb_leaf_logn15_brms_wprior) #looks great
+plot(sb_leaf_logn15_brms_wprior) #looks great
+
+
+#extract some values:------
+sb_leaf_logn15_brms_wprior %>%
+  spread_draws(b_log_seabird_c) %>%
+  median_hdi(b_log_seabird_c)
+#b_log_seabird      lower       upper     width   point     interval
+# 0.1590733	      0.09962638  	0.2143891	0.95	    median  	hdi
+
+
+#extract some values, back transformed (A doubling of seabird biomass is associated with a change in median of n15 by a factor of (2^B). - becauase log-log)
+sb_leaf_logn15_brms_wprior %>%
+  spread_draws(b_log_seabird_c) %>%
+  median_hdi((2^b_log_seabird_c))
+#log(2^b_log_seabird)      lower       upper        width   point     interval
+#1.11657	                1.072537	1.161464		    .95       median      hdi
+
+
+
+#compare to default prior:----
+sb_leaf_logn15_brms %>%
+  spread_draws(b_log_seabird_c) %>%
+  median_hdi((2^b_log_seabird_c))
+#log(2^b_log_seabird)      lower       upper        width   point     interval
+#1.11657	                1.072537	1.161464		    .95       median      hdi #w/prior
+#1.127839	                1.084054	1.175206      	0.95    	median	    hdi #defualt prior
+#nearly identical!
+
+
+
+```
+
+
+##Bayesian analysis based on DAGs - Hypothesis 2: effect of seabirds on turf n15
+```{r}
+#add column for log and centered/scaled data:----
+turf_n15_dat_wlog<-
+  turf_n15_dat%>%
+  mutate(log_seabird = log(seabird.biomass.total+1),
+         log_n15 = log(N15))%>%
+  mutate(log_seabird_cs = base::scale(log_seabird, center = TRUE, scale = TRUE),
+         log_seabird_c = base::scale(log_seabird, center = TRUE, scale = FALSE))
+turf_n15_dat_wlog
+
+
+#brms models------
+#see previous file for other options/build-up
+
+#log-log model, uninformative prior: 
+sb_turf_logn15_brms<-
+  brm(
+ log_n15~log_seabird_c + (1|Island),
+  data = turf_n15_dat_wlog, 
+  iter = 3000, warmup = 1000, chains = 4, cores = 4,
+   control = list(adapt_delta = 0.999, max_treedepth = 15), 
+ # prior = leaf_prior_log,
+ #   sample_prior="yes",
+      file = "../outputs/brms/sb_turf_logn15_brms") #all good
+print(sb_turf_logn15_brms)
+
+
+# do some checks:
+pp_check(sb_turf_logn15_brms) #looks great
+plot(sb_turf_logn15_brms) #looks great
+
+plot(hypothesis(sb_turf_logn15_brms, "log_seabird_c>0"))
+hypothesis(sb_turf_logn15_brms, "log_seabird_c>0")
+#looks great:
+#hypothesis           est      error     lower     upper       evidence ratio        posterior probability
+#(log_seabird_c) > 0	0.06    	0.04	    0	         0.13	           15.36        	0.94	
+
+
+
+#log-log model, informative prior----
+###set prior-----
+turf_prior_log<-
+     set_prior("normal(.05, .5)", class = "b")+ #expect positive effect, but lower than for leaves.
+  #Benkwitt et al. 2021 ProcB: log(biomass) absolute effect on turf n15 median = 0.00	95% HPDI = -0.28, 0.29
+    set_prior("normal(1.1, 1)", class = "Intercept")
+ #Benkwitt et al. 2021 ProcB: turf n15 range approx 3 to 7.  Graham et al. 2018 range ~ 0 to 6. Benkwitt et al. Current Biology - range ~2-8
+
+
+sb_turf_logn15_brms_wprior<-
+  brm(
+ log_n15~log_seabird_c + (1|Island),
+  data = turf_n15_dat_wlog, 
+  iter = 3000, warmup = 1000, chains = 4, cores = 4,
+   control = list(adapt_delta = 0.999, max_treedepth = 15), 
+    sample_prior="yes",
+ prior = turf_prior_log,
+      file = "../outputs/brms/sb_turf_logn15_brms_wprior") 
+print(sb_turf_logn15_brms_wprior)
+
+
+# do some checks:
+pp_check(sb_turf_logn15_brms_wprior) #looks great
+plot(sb_turf_logn15_brms_wprior) #looks great
+
+
+plot(hypothesis(sb_turf_logn15_brms_wprior, "log_seabird_c>0"))
+hypothesis(sb_turf_logn15_brms_wprior, "log_seabird_c>0")
+#looks great**
+#hypothesis                est      error     lower     upper       evidence ratio    posterior probability
+#(log_seabird_c) > 0	      0.06    	0.04  	-0.01     	0.13	        12.86	        0.93		
+
+
+
+#extract some values:------
+sb_turf_logn15_brms_wprior %>%
+  spread_draws(b_log_seabird_c) %>%
+  median_hdi(b_log_seabird_c)
+#b_log_seabird      lower       upper     width   point     interval
+#0.06018078	      -0.02503693	  0.1447677		  0.95	median	hdi
+
+
+#extract some values, back transformed (A doubling of seabird biomass is associated with a change in median of n15 by a factor of (2^B). - becauase log-log)
+sb_turf_logn15_brms_wprior %>%
+  spread_draws(b_log_seabird_c) %>%
+  median_hdi((2^b_log_seabird_c))
+#log(2^b_log_seabird)      lower       upper        width   point     interval
+#1.042596	              0.9818307	      1.104702		        0.95	median	hdi
+
+
+
+#compare to default prior:----
+sb_turf_logn15_brms %>%
+  spread_draws(b_log_seabird_c) %>%
+  median_hdi((2^b_log_seabird_c))
+#log(2^b_log_seabird)      lower       upper        width   point     interval
+#1.042596	              0.9818307	      1.104702		  0.95	median	hdi  #w/prior
+#1.042557	              0.9856462	      1.10313		   0.95	  median	  hdi   #defualt prior
+#nearly identical!
+
+```
+
+
+#model plots----
+```{r}
+
+#leaf model: sb_leaf_logn15_brms_wprior
+#turf model: sb_turf_logn15_brms_wprior
+
+#conditional effects, with partialized residuals-----
+#first for turf-----
+#effect line:
+me_turf_sb<-conditional_effects(sb_turf_logn15_brms_wprior, prob = .75, effects = 'log_seabird_c', plot = FALSE)[[1]]
+
+#extract partialized residuals
+p_turf_sb<-partialize(sb_turf_logn15_brms_wprior, vars= "log_seabird_c",  data = turf_n15_dat_wlog)
+
+#get data for un-centering:
+mean(turf_n15_dat_wlog$log_seabird, na.rm=TRUE) #3.218641
+
+me_turf_seabird_unscale<-
+  me_turf_sb%>%
+  mutate(log_seabird = (log_seabird_c + 3.218641)) # + mean
+
+
+#no jitter:
+turf_part_plot<-
+p_turf_sb %>%
+  ggplot(aes(x = log_seabird, y = exp(log_n15))) +
+     geom_point(color = "#009E73", fill = "#009E73", alpha = 0.4, size = 3) + #, size = .8
+    geom_ribbon(data = me_turf_seabird_unscale, aes(ymin = exp(lower__), ymax=exp(upper__)), alpha = .2, fill = "#009E73")+
+    geom_line(data = me_turf_seabird_unscale, aes(x = log_seabird, y = exp(estimate__)), lwd = 1.2, colour = "#009E73") +
+  xlab(bquote(Seabird~biomass~(log~kg~ha^-1)))+
+  ylab(expression(paste("Turf ", delta^15, "N"))) + 
+  theme_bw()+
+    guides(size = "none", colour = "none",  fill = guide_legend(title="Confidence level")) + 
+    theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+    #            text = element_text(size = 24),
+        legend.position='none')
+turf_part_plot
+
+
+#raw effect size posterior distribution plot:
+turf_post_plot<-
+sb_turf_logn15_brms_wprior %>%
+  spread_draws(b_log_seabird_c) %>%
+ # mutate(exp_b=exp(b_treatment_bNo_rats))%>%
+  ggplot(aes(y = 0, x = b_log_seabird_c, fill = "#009E73")) +
+  stat_halfeye(point_interval=median_hdi, .width=c(.95, .75), fatten_point = 2, slab_alpha = 0.6) +
+  scale_fill_manual(values = alpha(c("#009E73"),0.3))+
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme_bw() + 
+  xlab("")+
+  ylab("")+
+ # scale_x_continuous(limits=c(-1.3, 2), breaks=seq(-1, 2,1))+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        legend.position = "none",  
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA),
+      #  text=element_text(size=16,  family="sans"),
+          axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+turf_post_plot
+
+
+#now for leaves-----
+#effect line:
+me_leaf_sb<-conditional_effects(sb_leaf_logn15_brms_wprior, prob = .75, effects = 'log_seabird_c', plot = FALSE)[[1]]
+
+#extract partialized residuals
+p_leaf_sb<-partialize(sb_leaf_logn15_brms_wprior, vars= "log_seabird_c",  data = leaf_n15_dat_wlog)
+
+#get data for un-scaling and centering:
+mean(leaf_n15_dat_wlog$log_seabird, na.rm=TRUE) #3.125881
+
+me_leaf_seabird_unscale<-
+  me_leaf_sb%>%
+  mutate(log_seabird = log_seabird_c + 3.125881 ) # + mean
+
+
+leaf_part_plot<-
+p_leaf_sb %>%
+  ggplot(aes(x = log_seabird, y = exp(log_n15))) +
+     geom_point(color = "#009E73", fill = "#009E73", alpha = 0.4, size = 3) + #, size = .8
+    geom_ribbon(data = me_leaf_seabird_unscale, aes(ymin = exp(lower__), ymax=exp(upper__)), alpha = .2, fill = "#009E73")+
+    geom_line(data = me_leaf_seabird_unscale, aes(x = log_seabird, y = exp(estimate__)), lwd = 1.2, colour = "#009E73") +
+ # xlab("Seabird biomass (log kg-1 ha-1)")+
+ylab(expression(paste("Leaf ", delta^15, "N"))) + 
+  xlab(bquote(Seabird~biomass~(log~kg~ha^-1)))+
+  # scale_y_continuous(limits=c(0, 11), breaks=seq(0,10,2))+
+  theme_bw()+
+    guides(size = "none", colour = "none",  fill = guide_legend(title="Confidence level")) + 
+    theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+    #            text = element_text(size = 24),
+        legend.position='none')
+leaf_part_plot
+
+#raw effect size posterior distribution plot:
+leaf_post_plot<-
+sb_leaf_logn15_brms_wprior %>%
+  spread_draws(b_log_seabird_c) %>%
+ # mutate(exp_b=exp(b_treatment_bNo_rats))%>%
+  ggplot(aes(y = 0, x = b_log_seabird_c, fill = "#009E73")) +
+  stat_halfeye(point_interval=median_hdi, .width=c(.95, .75), fatten_point = 2, slab_alpha = 0.6) +
+  scale_fill_manual(values = alpha(c("#009E73"),0.3))+
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme_bw() + 
+  xlab("")+
+  ylab("")+
+ # scale_x_continuous(limits=c(-1.3, 2), breaks=seq(-1, 2,1))+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        legend.position = "none",  
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA),
+      #  text=element_text(size=16,  family="sans"),
+          axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+leaf_post_plot
+
+
+
+##make inset plots, then combine and save (w different colors)-------
+leaf.plot.with.inset <-
+  ggdraw() +
+  draw_plot(leaf_part_plot) +
+  draw_plot(leaf_post_plot, x = 0.1, y = .57, width = .4, height = .4)
+leaf.plot.with.inset
+
+
+turf.plot.with.inset <-
+  ggdraw() +
+  draw_plot(turf_part_plot) +
+  draw_plot(turf_post_plot, x = 0.1, y = .57, width = .4, height = .4)
+turf.plot.with.inset
+
+
+figure2<-plot_grid(leaf.plot.with.inset, turf.plot.with.inset)
+figure2
+
+# Can save the plot with ggsave()
+#ggsave(filename = "../outputs/figures/figure2_leaf_turf_n15_plots.png", 
+#       plot = figure2,
+#       width = 20, 
+#       height = 10,
+#      units = "cm",
+#     dpi = 300)
+
+
+```
+
+
+##re-plot for supplemental figure (because reverse dag doesn't change this part)
+```{r}
+
+turf_post_plot_reverse<-
+sb_turf_logn15_brms_wprior %>%
+  spread_draws(b_log_seabird_c) %>%
+  ggplot(aes(y = 0, x = b_log_seabird_c, fill = after_stat(x < 0))) +
+  stat_halfeye(point_interval=median_hdi, .width=c(.95, .75),  slab_alpha = 0.6, fatten_point=1) +
+  scale_fill_manual(values = alpha(c("#d0e2af" ,"#e89c81"),1)) +#PNW color palette
+  geom_vline(xintercept = 0, linetype = "dashed", lwd = .5) +
+  theme_bw() + 
+  xlab("")+
+  ylab("")+
+  #ggtitle("effect of seabird biomass on turf nutrients")+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        legend.position = "none",  
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA),
+        text=element_text(size=10,  family="sans"),
+          axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+turf_post_plot_reverse
+
+#Save the plot with ggsave()
+#ggsave(filename = "../outputs/figures/supp_fig_turf_n_seabird_post_plot_reverse.pdf", plot = turf_post_plot_reverse,  width = 8,   height = 5,  units = "cm", dpi = 300)
+```
+
+
+
+
+#plot of seabird biomass
+```{r}
+
+sey_sb_dat_for_plot<-
+  sey_sb_dat%>%
+  mutate(Island_Site = 
+           case_when(Island == "Aride" ~ "Aride",
+                     Island == "Cousine" ~ "Cousine",
+                     Island == "Felicite" ~ "Félicité",
+                     Site == "High" ~ "Fregate NE",
+                     Site == "Low" ~ "Fregate SW"))%>%
+  mutate(rats = 
+           case_when(Island == "Felicite" ~ "rats",
+                     Island == "Fregate" ~ "rats eradicated",
+                     Island == "Aride" ~ "never rats",
+                     Island == "Cousine" ~ "never rats"))
+sey_sb_dat_for_plot
+
+
+##bubble plot by site-----
+sey_sb_plot<-
+sey_sb_dat_for_plot%>%
+  mutate(round_seabird_biomass = round(seabird.biomass.total, digits = 0))%>%
+  ggplot(aes(x =  reorder(Island_Site, seabird.biomass.total, mean), y = 0))+
+  geom_point(aes(fill = rats,  colour = rats, size = seabird.biomass.total), alpha = .8)+
+  geom_text(aes(label = round_seabird_biomass))+ #, vjust = -2
+        scale_fill_manual(name = "", values = c("#FC8D62", "#8DA0CB", "#E78AC3"), breaks = c("rats", "rats eradicated", "never rats"), guide = "none")+
+      scale_colour_manual(name = "", values = c("#FC8D62", "#8DA0CB", "#E78AC3"), breaks = c("rats", "rats eradicated", "never rats"))+  
+   scale_size_continuous(range = c(2,15), breaks = c(0, 50, 150), name = "seabird biomass", guide = "none")+
+  xlab("")+
+  ylab(bquote(Seabird~biomass~(kg~ha^-1)))+
+  theme() +
+theme(axis.title.y =element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y=element_blank(),
+    axis.line = element_blank(),
+    legend.direction = "horizontal",
+    legend.position = c(.5,.9),
+    text=element_text(size=12,  family="sans"),
+    legend.key=element_blank())
+sey_sb_plot
+
+
+#ggsave(filename = "../outputs/figures/figure2_seabird_bubble_plot.jpg", 
+#      plot = sey_sb_plot,
+#      width = 10, 
+#       height = 4,
+#       units = "cm",
+#       dpi = 300)
+
+
+
+#with increased margins----
+sey_sb_plot2<-
+sey_sb_dat_for_plot%>%
+  mutate(round_seabird_biomass = round(seabird.biomass.total, digits = 0))%>%
+  ggplot(aes(x =  reorder(Island_Site, seabird.biomass.total, mean), y = 0))+
+  geom_point(aes(fill = rats,  colour = rats, size = seabird.biomass.total), alpha = .8)+
+  geom_text(aes(label = round_seabird_biomass))+ #, vjust = -2
+    scale_size_continuous(range = c(2,15), breaks = c(0, 50, 150), name = "seabird biomass", guide = "none")+
+      scale_fill_manual(name = "", values = c("#FC8D62", "#8DA0CB", "#E78AC3"), breaks = c("rats", "rats eradicated", "never rats"), guide = "none")+
+      scale_colour_manual(name = "", values = c("#FC8D62", "#8DA0CB", "#E78AC3"), breaks = c("rats", "rats eradicated", "never rats"))+  
+  xlab("")+
+  ylab(bquote(Seabird~biomass~(kg~ha^-1)))+
+  theme() +
+theme(axis.title.y =element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y=element_blank(),
+    axis.line = element_blank(),
+    legend.direction = "horizontal",
+    legend.position = c(.5,.9),
+    legend.key=element_blank(),
+    plot.margin = unit(c(0.1, 1, 0, 1), "cm"))
+sey_sb_plot2
+
+
+
+##combine with above plots-----
+fig2_combined<-plot_grid(sey_sb_plot2, figure2, nrow = 2, rel_heights = c(1, 2)) # rel_widths = c(1, 2), scale = c(.8, 1)
+fig2_combined
+
+# Can save the plot with ggsave()
+#ggsave(filename = "../outputs/figures/figure2_combined.jpg", 
+#       plot = fig2_combined,
+#       width = 20, 
+#      height = 10,
+#       units = "cm",
+#       dpi = 300)
+
+
+```

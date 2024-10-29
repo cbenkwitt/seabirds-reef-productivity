@@ -1,0 +1,21 @@
+Island,Site,Transect,turf_prop
+Fregate,Low,1,0.25
+Fregate,Low,2,0.233333333
+Fregate,Low,3,0.033333333
+Fregate,Low,4,0.033333333
+Cousine,Site 1,1,0.083333333
+Cousine,Site 1,2,0.3
+Cousine,Site 1,3,0.083333333
+Cousine,Site 1,4,0.133333333
+Aride,Site 1,1,0.05
+Aride,Site 1,2,0.083333333
+Aride,Site 1,3,0.05
+Aride,Site 1,4,0.3
+Fregate,High,1,0.1
+Fregate,High,2,0.116666667
+Fregate,High,3,0.033333333
+Fregate,High,4,0.05
+Felicite,Site 1,1,0.1
+Felicite,Site 1,2,0.383333333
+Felicite,Site 1,3,0.2
+Felicite,Site 1,4,0.083333333

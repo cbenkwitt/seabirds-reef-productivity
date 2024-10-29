@@ -1,0 +1,743 @@
+---
+title: "herbivore-feeding-group-analysis"
+author: "CEB"
+date: '2024-09-25'
+output: html_document
+---
+
+#load packages
+```{r}
+library(tidyverse)
+
+#for bayesian analysis:
+library(brms)
+library(tidybayes)
+
+#for plotting:
+library(cowplot)
+
+library(jtools)
+
+```
+
+
+###set plot theme
+```{r}
+theme_casey<-
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        text = element_text(size = 14, family = "Arial"),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+        )
+
+theme_set(theme_casey) 
+  
+```
+
+
+#load  data and combine
+```{r}
+#turf cover and nutrient data----
+turf_cover_iso_dat<-read.csv("../data/seychelles_turf_cover_isotopes_by_transect.csv")
+
+#turf growth data---
+turf_growth_iso_dat<-read.csv("../data/seychelles_turf_pp_iso_by_cage.csv")
+#aggregate by site:
+turf_growth_iso_site_dat<-
+  turf_growth_iso_dat%>%
+    group_by(Island, Site)%>%
+  summarize(mean_turf_prod_mm_day = mean(Turf_growth_mm_per_day, na.rm = TRUE),
+            se_turf_prod_mm_day = sd(Turf_growth_mm_per_day, na.rm = TRUE)/sqrt(length(Turf_growth_mm_per_day)))
+turf_growth_iso_site_dat
+
+#herbivore info (from productivity calculations file)----
+herbivore_fg_dat<-read.csv("../data/seychelles_herbivore_biomass_productivity_by_transect_and_feeding_group.csv")
+
+#combine---
+str(turf_cover_iso_dat)
+str(herbivore_fg_dat)
+
+#first turf cover with turf growth (nutrients should match)
+turf_all_dat<-left_join(turf_cover_iso_dat, turf_growth_iso_site_dat, 
+                                    by =c("Island", "Site"))
+turf_all_dat
+
+herbivore_fg_turf_dat<-left_join(herbivore_fg_dat, turf_all_dat,
+                                    by =c("Island", "Site", "Transect"))
+herbivore_fg_turf_dat
+
+```
+
+
+#seperate by feeding group
+```{r}
+#now seperate data per group:----
+browser_dat<-
+  herbivore_fg_turf_dat%>%
+  filter(FG.fine == "Browser")
+
+brusher_dat<-
+  herbivore_fg_turf_dat%>%
+  filter(FG.fine == "Brusher")
+
+cropper_dat<-
+  herbivore_fg_turf_dat%>%
+  filter(FG.fine == "Cropper")
+
+excavator_dat<-
+  herbivore_fg_turf_dat%>%
+  filter(FG.fine == "Excavator")
+
+farmer_dat<-
+  herbivore_fg_turf_dat%>%
+  filter(FG.fine == "Farmer")
+
+scraper_dat<-
+  herbivore_fg_turf_dat%>%
+  filter(FG.fine == "Scraper")
+
+#add column for centered, log data:----
+browser_dat_c<-
+  browser_dat%>%
+  mutate(turf_n15_c = base::scale(mean_turf_n15, center = TRUE, scale = FALSE),
+         turf_prop_c = base::scale(turf_prop, center = TRUE, scale = FALSE),
+         turf_productivity_c = base::scale(mean_turf_prod_mm_day, center = TRUE, scale = FALSE),
+         log_herb_bio = log(biomass_kg_ha+1),
+         log_herb_prod = log(productivity_kg_ha_day+1))
+browser_dat_c
+
+brusher_dat_c<-
+  brusher_dat%>%
+  mutate(turf_n15_c = base::scale(mean_turf_n15, center = TRUE, scale = FALSE),
+         turf_prop_c = base::scale(turf_prop, center = TRUE, scale = FALSE),
+         turf_productivity_c = base::scale(mean_turf_prod_mm_day, center = TRUE, scale = FALSE),
+         log_herb_bio = log(biomass_kg_ha+1),
+         log_herb_prod = log(productivity_kg_ha_day+1))
+brusher_dat_c
+
+cropper_dat_c<-
+  cropper_dat%>%
+  mutate(turf_n15_c = base::scale(mean_turf_n15, center = TRUE, scale = FALSE),
+         turf_prop_c = base::scale(turf_prop, center = TRUE, scale = FALSE),
+         turf_productivity_c = base::scale(mean_turf_prod_mm_day, center = TRUE, scale = FALSE),
+         log_herb_bio = log(biomass_kg_ha+1),
+         log_herb_prod = log(productivity_kg_ha_day+1))
+cropper_dat_c
+
+excavator_dat_c<-
+  excavator_dat%>%
+  mutate(turf_n15_c = base::scale(mean_turf_n15, center = TRUE, scale = FALSE),
+         turf_prop_c = base::scale(turf_prop, center = TRUE, scale = FALSE),
+         turf_productivity_c = base::scale(mean_turf_prod_mm_day, center = TRUE, scale = FALSE),
+         log_herb_bio = log(biomass_kg_ha+1),
+         log_herb_prod = log(productivity_kg_ha_day+1))
+excavator_dat_c
+
+farmer_dat_c<-
+  farmer_dat%>%
+  mutate(turf_n15_c = base::scale(mean_turf_n15, center = TRUE, scale = FALSE),
+         turf_prop_c = base::scale(turf_prop, center = TRUE, scale = FALSE),
+         turf_productivity_c = base::scale(mean_turf_prod_mm_day, center = TRUE, scale = FALSE),
+         log_herb_bio = log(biomass_kg_ha+1),
+         log_herb_prod = log(productivity_kg_ha_day+1))
+farmer_dat_c
+
+scraper_dat_c<-
+  scraper_dat%>%
+  mutate(turf_n15_c = base::scale(mean_turf_n15, center = TRUE, scale = FALSE),
+         turf_prop_c = base::scale(turf_prop, center = TRUE, scale = FALSE),
+         turf_productivity_c = base::scale(mean_turf_prod_mm_day, center = TRUE, scale = FALSE),
+         log_herb_bio = log(biomass_kg_ha+1),
+         log_herb_prod = log(productivity_kg_ha_day+1))
+scraper_dat_c
+
+```
+
+
+####Bayesian analysis based on DAGs - effect of turf productivity on herbivore productivity, by feeding group----
+```{r}
+
+##browser---
+browser_prod_log_mod<-
+  brm(log_herb_prod ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = browser_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/browser_prod_log_mod") #5 divergent trans
+print(browser_prod_log_mod)
+pp_check(browser_prod_log_mod) #not sampling peak**
+
+
+hypothesis(browser_prod_log_mod, "turf_productivity_c>0")
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	    0.38	    4.04	      -2.31	     3.3	      2.16                    	0.68	
+
+
+
+##brusher---
+brusher_prod_log_mod<-
+  brm(log_herb_prod ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = brusher_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/brusher_prod_log_mod") #18 divergent trans
+print(brusher_prod_log_mod) 
+plot(brusher_prod_log_mod)
+pp_check(brusher_prod_log_mod) #looks pretty good
+
+
+hypothesis(brusher_prod_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	     0.3	      2.63    	-0.88	    1.33	      2.45	                0.71		
+
+
+
+
+##cropper---
+cropper_prod_log_mod<-
+  brm(log_herb_prod ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = cropper_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/cropper_prod_log_mod") #4 divergent trans
+print(cropper_prod_log_mod) 
+plot(cropper_prod_log_mod)
+pp_check(cropper_prod_log_mod) #not quite sampling peak
+
+
+hypothesis(cropper_prod_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	      1.03    	4.52	  -4.14   	5.75        	3.65	                      0.78	
+
+
+##excavator---
+excavator_prod_log_mod<-
+  brm(log_herb_prod ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = excavator_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/excavator_prod_log_mod") #29 divergent trans
+print(excavator_prod_log_mod)
+plot(excavator_prod_log_mod)
+pp_check(excavator_prod_log_mod) #looks good
+
+
+hypothesis(excavator_prod_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	     -0.6	    2.48      	-3.57	    1.95        	0.25	                0.2		
+
+
+
+##farmer---
+farmer_prod_log_mod<-
+  brm(log_herb_prod ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = farmer_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/farmer_prod_log_mod") #9 divergent trans
+print(farmer_prod_log_mod) 
+plot(farmer_prod_log_mod)
+pp_check(farmer_prod_log_mod) #looks good
+
+
+hypothesis(farmer_prod_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	   -0.27    	0.95    	-1.32	    0.63        	0.27                    	0.22	
+
+
+
+##scraper---
+scraper_prod_log_mod<-
+  brm(log_herb_prod ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = scraper_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/scraper_prod_log_mod") # 8 divergent trans
+print(scraper_prod_log_mod) 
+plot(scraper_prod_log_mod)
+pp_check(scraper_prod_log_mod) #looks good
+
+
+hypothesis(scraper_prod_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	    	0.22	    3.65  	-3.66	    4.27	        1.7	                          0.63	
+
+
+#some divergent transition issues, but not many other distributions to try that have helped. Secondary analysis, proceed with this for now. 
+#compare to non-log models to see if any improvement, and if any conclusions change:-----
+
+##browser---
+browser_prod_mod<-
+  brm(productivity_kg_ha_day ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = browser_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/browser_prod_mod") #9 divergent trans
+print(browser_prod_mod)
+pp_check(browser_prod_mod) #no better
+
+
+hypothesis(browser_prod_mod, "turf_productivity_c>0") #0.68-->0.66
+
+
+##brusher---
+brusher_prod_mod<-
+  brm(productivity_kg_ha_day ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = brusher_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/brusher_prod_mod") #19 divergent trans
+print(brusher_prod_mod) 
+pp_check(brusher_prod_mod) #looks pretty good
+
+hypothesis(brusher_prod_mod, "turf_productivity_c>0") #  0.71		(same)
+
+
+##cropper---
+cropper_prod_mod<-
+  brm(productivity_kg_ha_day ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = cropper_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/cropper_prod_mod") #0 divergent trans
+print(cropper_prod_mod) 
+pp_check(cropper_prod_mod) #way worse*
+
+hypothesis(cropper_prod_mod, "turf_productivity_c>0") #0.78	 --> 0.8
+
+
+##excavator---
+excavator_prod_mod<-
+  brm(productivity_kg_ha_day ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = excavator_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/excavator_prod_mod") #14 divergent trans
+print(excavator_prod_mod)
+pp_check(excavator_prod_mod) #looks good
+
+hypothesis(excavator_prod_mod, "turf_productivity_c>0")  #     0.2	 --> 0.2
+
+
+##farmer---
+farmer_prod_mod<-
+  brm(productivity_kg_ha_day ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = farmer_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/farmer_prod_mod") #11 divergent trans
+print(farmer_prod_mod) 
+pp_check(farmer_prod_mod) #looks good
+
+
+hypothesis(farmer_prod_mod, "turf_productivity_c>0") #    	0.22	-->     	0.23
+
+
+##scraper---
+scraper_prod_mod<-
+  brm(productivity_kg_ha_day ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = scraper_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/scraper_prod_mod") #2 divergent trans
+print(scraper_prod_mod) 
+pp_check(scraper_prod_mod) #looks good
+
+hypothesis(scraper_prod_mod, "turf_productivity_c>0") #0.63 --> 0.64
+
+#all conclusions identical, proceed with log because contrasins above 0 (makes more sense), and some better sampling.
+
+```
+
+
+
+####Bayesian analysis based on DAGs - effect of turf productivity on herbivore biomass, by feeding group----
+```{r}
+
+##browser---
+browser_bio_log_mod<-
+  brm(log_herb_bio ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = browser_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/browser_bio_log_mod") #1 divergent trans
+print(browser_bio_log_mod)
+pp_check(browser_bio_log_mod) #a bit hump-shaped, not terrible
+
+
+hypothesis(browser_bio_log_mod, "turf_productivity_c>0")
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	   14.79	    20.31	    -17.3	    45.65           	4.52            	0.82	
+
+
+
+##brusher---
+brusher_bio_log_mod<-
+  brm(log_herb_bio ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = brusher_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/brusher_bio_log_mod") #0 divergent trans
+print(brusher_bio_log_mod) 
+plot(brusher_bio_log_mod)
+pp_check(brusher_bio_log_mod) #looks pretty good
+
+
+hypothesis(brusher_bio_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	    6.73    	20.67	    -20.91      	39.61	      2.01                	0.67		
+
+
+
+
+##cropper---
+cropper_bio_log_mod<-
+  brm(log_herb_bio ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = cropper_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/cropper_bio_log_mod") #0 divergent trans
+print(cropper_bio_log_mod) 
+plot(cropper_bio_log_mod)
+pp_check(cropper_bio_log_mod) #not quite sampling peak, but not bad
+
+
+hypothesis(cropper_bio_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	      13.56	    16.35	  -9.85	    37.14	          6.68                	0.87	
+
+
+
+##excavator---
+excavator_bio_log_mod<-
+  brm(log_herb_bio ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = excavator_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/excavator_bio_log_mod") #0 divergent trans
+print(excavator_bio_log_mod)
+plot(excavator_bio_log_mod)
+pp_check(excavator_bio_log_mod) #a bit hump-shaped, but pretty good
+
+
+hypothesis(excavator_bio_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	     -16.39	    22.71	    -54.51	  16.36	        0.23                	0.19	
+1 
+
+
+
+##farmer---
+farmer_bio_log_mod<-
+  brm(log_herb_bio ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = farmer_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/farmer_bio_log_mod") #0 divergent trans
+print(farmer_bio_log_mod) 
+plot(farmer_bio_log_mod)
+pp_check(farmer_bio_log_mod) #a bit hump-shaped, but pretty good
+
+
+hypothesis(farmer_bio_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	   -18.73	        37.03	  -65.96  	20.52       	0.21              	0.18	
+
+
+
+##scraper---
+scraper_bio_log_mod<-
+  brm(log_herb_bio ~ turf_productivity_c + turf_n15_c  + (1|Island), 
+       data = scraper_dat_c,
+        iter = 3000, warmup = 1000, chains = 4, cores = 4,
+         control = list(adapt_delta = 0.999, max_treedepth = 15), 
+       file = "../outputs/brms/scraper_bio_log_mod") # 0 divergent trans
+print(scraper_bio_log_mod) 
+plot(scraper_bio_log_mod)
+pp_check(scraper_bio_log_mod) #looks good
+
+
+hypothesis(scraper_bio_log_mod, "turf_productivity_c>0") 
+#hypothesis                     est      error     lower     upper       evidence ratio        posterior probability
+#(turf_productivit... > 0	    	9.37    	23.32	    -26.96	  44.52	      2.49	                      0.71	
+
+
+
+```
+
+#extract effect sizes and 95% hpdis:
+```{r}
+
+
+#productivity models:-----
+cropper_prod_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#0.1216613	-0.6723181	0.9059609	
+
+
+cropper_prod_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(exp(b_turf_productivity_c/10)) 
+#back-transform: 
+#1.129372	0.2993779	1.935624	
+#for each 0.1 mm/day increase in turf growth, cropper productivity increases by a factor of 1.13 (95% HPDI 0.30 to 1.94).
+
+brusher_prod_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#0.01359768	-0.1720333	0.2097179	
+
+
+scraper_prod_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#0.03682815	-0.529185	0.7166251	
+
+
+excavator_prod_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#-0.05871047	-0.6127007	0.3318234	
+
+farmer_prod_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#-0.02058008	-0.1979979	0.1246575	
+
+
+browser_prod_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#0.03488947	-0.3704969	0.6525071	
+
+#biomass models:-----
+cropper_bio_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#1.351464	-1.727903	4.398507	
+
+cropper_bio_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(exp(b_turf_productivity_c/10)) 
+#back-transform: 
+#3.863077	1.730786e-07	41.04903
+#for each 0.1 mm/day increase in turf growth, cropper productivity increases by a factor of 3.86 (95% HPDI 0 to 41.0).
+
+
+brusher_bio_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#0.5470305	-3.217795	5.033131	
+
+
+scraper_bio_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#0.950204	-3.709407	5.600817	
+
+
+excavator_bio_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#-1.448938	-6.429473	2.830282	
+
+farmer_bio_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#-1.740312	-8.108458	3.699947	0.95	median	hdi
+
+
+browser_bio_log_mod %>%
+  spread_draws(b_turf_productivity_c) %>% 
+  median_hdci(b_turf_productivity_c/10) #make scale reasonable - 0.1 mm increase in turf growth/day, rather than 1 mm increase
+#1.491909	-2.679731	5.585599	
+
+
+```
+
+
+
+##plot prediction lines:
+```{r}
+
+#productivity------
+#combine data and plot in different facets:
+me_farmer<-conditional_effects(farmer_prod_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_farmer<-partialize(farmer_prod_log_mod, vars= "turf_productivity_c",  data = farmer_dat_c)
+
+me_scraper<-conditional_effects(scraper_prod_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_scraper<-partialize(scraper_prod_log_mod, vars= "turf_productivity_c",  data = scraper_dat_c)
+
+me_excavator<-conditional_effects(excavator_prod_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_excavator<-partialize(excavator_prod_log_mod, vars= "turf_productivity_c",  data = excavator_dat_c)
+
+me_brusher<-conditional_effects(brusher_prod_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_brusher<-partialize(brusher_prod_log_mod, vars= "turf_productivity_c",  data = brusher_dat_c)
+
+me_cropper<-conditional_effects(cropper_prod_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_cropper<-partialize(cropper_prod_log_mod, vars= "turf_productivity_c",  data = cropper_dat_c)
+
+me_browser<-conditional_effects(browser_prod_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_browser<-partialize(browser_prod_log_mod, vars= "turf_productivity_c",  data = browser_dat_c)
+
+
+
+comb_me<-bind_rows(list(me_cropper, me_brusher, me_scraper, me_excavator, me_farmer,   me_browser), .id = "id")%>%
+  mutate(fg.fine = case_when(id == 1 ~ "cropper",
+                             id == 2 ~ "brusher",
+                             id == 3 ~ "scraper",
+                             id == 4 ~ "excavator",
+                             id == 5 ~ "farmer",
+                             id == 6 ~ "browser"))%>%
+  mutate(fg.fine = as.factor(fg.fine))%>%
+  mutate(fg.fine = fct_relevel(fg.fine, "cropper", "brusher", "scraper", "excavator", "farmer", "browser"))
+
+
+#uncenter and scale
+comb_mep_unscale<-
+  comb_me%>%
+  mutate(mean_turf_prod_mm_day = turf_productivity_c+ 0.3158526 )# + mean
+
+
+comb_p<-bind_rows(list(p_cropper, p_brusher, p_scraper, p_excavator, p_farmer,   p_browser), .id = "id")%>%
+  mutate(fg.fine = case_when(id == 1 ~ "cropper", #(turf algae)
+                             id == 2 ~ "brusher",
+                             id == 3 ~ "scraper",
+                             id == 4 ~ "excavator",
+                             id == 5 ~ "farmer",
+                             id == 6 ~ "browser"))%>% #(macroalgae)
+  mutate(fg.fine = as.factor(fg.fine))%>%
+  mutate(fg.fine = fct_relevel(fg.fine, "cropper", "brusher", "scraper", "excavator", "farmer", "browser"))
+
+
+###add better labels:
+fine_fg_part_plot<-
+comb_mep_unscale %>%
+  ggplot(aes(x = mean_turf_prod_mm_day, y = log_herb_prod, fill = fg.fine)) +
+      geom_line(aes(x = mean_turf_prod_mm_day, y = estimate__, colour = fg.fine), lwd = 1.2) +
+ geom_point(data = comb_p, aes(x = mean_turf_prod_mm_day, y = log_herb_prod, colour = fg.fine)) +
+        geom_ribbon(aes(ymin = lower__, ymax=upper__), alpha = .2) +
+  facet_wrap(~fg.fine, strip.position = "top",
+             labeller = labeller(fg.fine = c("cropper" = "(a) croppers (turf algae)", 
+                                                       "brusher" = "(b) brushers (detritus)",
+                                                        "scraper" = "(c) scrapers (cyanobacteria)", 
+                                                        "excavator" = "(d) excavators (cyanobacteria)", 
+                                                        "farmer" = "(e) farmers (turf algae in territory)", 
+                                                        "browser" = "(f) browsers (macroalgae)")))+
+  scale_fill_brewer(palette = "Set2")+
+    scale_colour_brewer(palette = "Set2")+
+  ylab(bquote(Herbivore~productivity~(log~kg~ha^-1~day^-1)))+
+  xlab(bquote(Turf~productivity~(mm~day^-1)))+
+  theme_bw()+
+    guides(size = "none", colour = "none",  fill = guide_legend(title="Confidence level")) + 
+    theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+    #            text = element_text(size = 24),
+        legend.position='none',
+        strip.text = element_text(hjust = 0, margin = margin(1, 0, 1, 0, "pt"), size = 8),
+    axis.text = element_text(size = 6),
+    axis.title = element_text(size = 8))
+fine_fg_part_plot
+
+#save-----
+#ggsave(filename = "../outputs/figures/fine_fg_part_plot_prod_smaller_font.png",  plot = fine_fg_part_plot,width = 15,  height = 10,units = "cm",dpi = 300)
+
+#ggsave(filename = "../outputs/figures/fine_fg_part_plot_prod_smaller_font.pdf",  plot = fine_fg_part_plot,width = 15,  height = 10,units = "cm",dpi = 300)
+
+
+```
+
+
+##plot biomass results + raw data, by FG
+```{r}
+
+#biomass------
+#combine data and plot in different facets:
+me_farmer<-conditional_effects(farmer_bio_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_farmer<-partialize(farmer_bio_log_mod, vars= "turf_productivity_c",  data = farmer_dat_c)
+
+me_scraper<-conditional_effects(scraper_bio_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_scraper<-partialize(scraper_bio_log_mod, vars= "turf_productivity_c",  data = scraper_dat_c)
+
+me_excavator<-conditional_effects(excavator_bio_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_excavator<-partialize(excavator_bio_log_mod, vars= "turf_productivity_c",  data = excavator_dat_c)
+
+me_brusher<-conditional_effects(brusher_bio_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_brusher<-partialize(brusher_bio_log_mod, vars= "turf_productivity_c",  data = brusher_dat_c)
+
+me_cropper<-conditional_effects(cropper_bio_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_cropper<-partialize(cropper_bio_log_mod, vars= "turf_productivity_c",  data = cropper_dat_c)
+
+me_browser<-conditional_effects(browser_bio_log_mod, prob = .75, effects = 'turf_productivity_c', plot = FALSE)[[1]]
+p_browser<-partialize(browser_bio_log_mod, vars= "turf_productivity_c",  data = browser_dat_c)
+
+
+
+comb_me<-bind_rows(list(me_cropper, me_brusher, me_scraper, me_excavator, me_farmer,   me_browser), .id = "id")%>%
+  mutate(fg.fine = case_when(id == 1 ~ "cropper",
+                             id == 2 ~ "brusher",
+                             id == 3 ~ "scraper",
+                             id == 4 ~ "excavator",
+                             id == 5 ~ "farmer",
+                             id == 6 ~ "browser"))%>%
+  mutate(fg.fine = as.factor(fg.fine))%>%
+  mutate(fg.fine = fct_relevel(fg.fine, "cropper", "brusher", "scraper", "excavator", "farmer", "browser"))
+
+
+#uncenter and scale
+comb_meb_unscale<-
+  comb_me%>%
+  mutate(mean_turf_prod_mm_day = turf_productivity_c+ 0.3158526 )# + mean
+
+
+comb_b<-bind_rows(list(p_cropper, p_brusher, p_scraper, p_excavator, p_farmer,   p_browser), .id = "id")%>%
+  mutate(fg.fine = case_when(id == 1 ~ "cropper", #(turf algae)
+                             id == 2 ~ "brusher",
+                             id == 3 ~ "scraper",
+                             id == 4 ~ "excavator",
+                             id == 5 ~ "farmer",
+                             id == 6 ~ "browser"))%>% #(macroalgae)
+  mutate(fg.fine = as.factor(fg.fine))%>%
+  mutate(fg.fine = fct_relevel(fg.fine, "cropper", "brusher", "scraper", "excavator", "farmer", "browser"))
+
+
+###add better labels:
+fine_fg_part_plot_bio<-
+comb_meb_unscale %>%
+  ggplot(aes(x = mean_turf_prod_mm_day, y = log_herb_bio, fill = fg.fine)) +
+      geom_line(aes(x = mean_turf_prod_mm_day, y = estimate__, colour = fg.fine), lwd = 1.2) +
+ geom_point(data = comb_b, aes(x = mean_turf_prod_mm_day, y = log_herb_bio, colour = fg.fine)) +
+        geom_ribbon(aes(ymin = lower__, ymax=upper__), alpha = .2) +
+  facet_wrap(~fg.fine, strip.position = "top",
+             labeller = labeller(fg.fine = c("cropper" = "(a) croppers (turf algae)", 
+                                                       "brusher" = "(b) brushers (detritus)",
+                                                        "scraper" = "(c) scrapers (cyanobacteria)", 
+                                                        "excavator" = "(d) excavators (cyanobacteria)", 
+                                                        "farmer" = "(e) farmers (turf algae in territory)", 
+                                                        "browser" = "(f) browsers (macroalgae)")))+
+  scale_fill_brewer(palette = "Set2")+
+    scale_colour_brewer(palette = "Set2")+
+  ylab(bquote(Herbivore~biomass~(log~kg~ha^-1)))+
+  xlab(bquote(Turf~productivity~(mm~day^-1)))+
+  theme_bw()+
+    guides(size = "none", colour = "none",  fill = guide_legend(title="Confidence level")) + 
+    theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+               text = element_text(size = 8),
+        legend.position='none',
+        strip.text = element_text(hjust = 0, margin = margin(1, 0, 1, 0, "pt"), size = 8),
+        axis.text = element_text(size = 6),
+    axis.title = element_text(size = 8))
+fine_fg_part_plot_bio
+
+#save-----
+ggsave(filename = "../outputs/figures/fine_fg_part_plot_bio_smaller_font.png",  plot = fine_fg_part_plot_bio,width = 15,  height = 10,units = "cm",dpi = 300)
+
+ggsave(filename = "../outputs/figures/fine_fg_part_plot_bio_smaller_font.pdf",  plot = fine_fg_part_plot_bio,width = 15,  height = 10,units = "cm",dpi = 300)
+```

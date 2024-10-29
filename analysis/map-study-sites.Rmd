@@ -1,0 +1,122 @@
+---
+title: "Map of study sites"
+author: "CEB"
+date: '2024-09-04'
+output: html_document
+---
+
+---
+title: "seychelles-map"
+author: "CEB"
+date: '2024-08-19'
+output: html_document
+---
+
+#map plot----
+```{r}
+
+library(tidyverse)
+
+#for mapping:
+library(sf) #for st_transform
+library(ggspatial) #for scale bar
+
+```
+
+
+###set plot theme
+```{r}
+theme_casey<-
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        text = element_text(size = 14),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+        )
+
+theme_set(theme_casey) 
+  
+```
+
+
+#load gpse data
+```{r}
+isl_gps_dat<-read.csv("../data/seychelles_gps.csv", stringsAsFactors = TRUE) 
+isl_gps_dat
+
+#add rat categories:
+sb_dat_used_gps<-
+  isl_gps_dat%>%
+  mutate(rat_status = case_when(Island == "Aride"~ "never rats",
+                                Island == "Cousine"~ "never rats",
+                                Island == "Felicite"~ "rats",
+                                Island == "Fregate"~ "rats eradicated"))
+
+sb_dat_used_gps
+
+```
+
+
+
+##Plot seychelles sites
+```{r}
+my_sf <- read_sf("../data/shape_files/syc_admbnda_adm0_nbs2010.shp")
+
+
+sey_map<-
+ggplot(my_sf) +
+  geom_sf(fill = "grey", color = "grey") + 
+  geom_point(data = sb_dat_used_gps, aes(x = Longitude, y = Latitude, color = rat_status), size = 2)+ 
+  scale_x_continuous(limits = c(55.64,55.95), breaks = seq(55.65, 55.95, by = .1))+
+    scale_y_continuous(limits = c(-4.59,-4.21), breaks = seq(-4.55, -4.2, by = .1))+
+  annotation_scale(width_hint = .5)+
+ # annotation_north_arrow(height = unit(.75, "cm"), width = unit(.75, "cm"), pad_y = unit(1, "cm"), pad_x = unit(1, "cm"))+
+  scale_fill_manual(values = c("#FC8D62", "#8DA0CB", "#E78AC3"), breaks = c("rats", "rats eradicated", "never rats"), guide = "none")+
+      scale_colour_manual(values = c("#FC8D62", "#8DA0CB", "#E78AC3"), breaks = c("rats", "rats eradicated", "never rats"))+
+  theme(legend.position = "inside",
+        legend.justification.inside = c(0.05,.1),
+        legend.box.background = element_rect(colour = "gray"),
+        legend.title = element_blank(),
+        legend.margin=margin(t=.05,l=0.05,b=.05,r=0.05, unit='cm'))
+sey_map
+
+#ggsave("../outputs/figures/study_sites_map.pdf", sey_map, width = 7, height = 7)
+
+
+```
+
+
+#combine with world map----
+```{r}
+#get world map-----
+library(maps)
+world_map <- ggplot2::map_data('world')
+class(world_map)
+head(world_map)
+
+world_map1<-
+ggplot(world_map, aes(x = long, y = lat, group = group)) +
+  geom_polygon(fill = "grey", colour = "grey")+
+  coord_fixed()+
+ # geom_rect(aes(xmin = 55.64, xmax = 55.95, ymin = -4.59, ymax = -4.21), color = "red")+
+  geom_tile(aes(x = 55.795, y = -4.4, width = 5, height = 5), color = "#66C2A5", fill = "#66C2A5", lwd = 1.1)+
+  #theme_void()
+  xlab("")+
+  ylab("")+
+  theme(axis.text=element_blank(), 
+      axis.ticks=element_blank()) 
+world_map1
+
+
+#combine----
+comb_plot<-
+  plot_grid(world_map1, sey_map, nrow = 2, rel_heights = c(.75, 2), align = "v")
+comb_plot
+
+
+#ggsave("../outputs/figures/study_sites_w_world_map.pdf", comb_plot, width = 7, height = 7)
+
+```
+

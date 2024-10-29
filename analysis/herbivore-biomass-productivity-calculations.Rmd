@@ -1,0 +1,210 @@
+---
+title: "Herbivore Biomass and Productivity Calculations"
+author: "CEB"
+date: '2024-09-05'
+output: html_document
+---
+
+#load packages
+```{r}
+
+library(tidyverse)
+
+
+#for productivity:
+#devtools::install_github("renatoamorais/rfishprod") #used version from 08.08.2022, v 0.0.3, downloaded April/May 2023
+library(rfishprod)
+citation("rfishprod")
+#To cite rfishprod in publications use:
+#  Morais, RA; Bellwood, DR. Principles for estimating fish productivity on coral reefs. Coral Reefs, 39:
+#  1221–1231. DOI: 10.1007/s00338-020-01969-9
+
+#If using predKmax, please also consider citing:
+#  Morais, RA; Bellwood, DR (2018) Global drivers of reef fish growth. Fish and Fisheries, 19(5): 874-889.
+#  DOI: 10.1111/faf.12297
+```
+
+
+#load data
+```{r}
+#surveys
+sey_herb_dat<-read.csv("../data/seychelles_herbivore_census.csv", stringsAsFactors = TRUE)
+sey_herb_dat
+
+#trait data
+sey_trait_dat<-read.csv("../data/seychelles_herbivore_spp_trait_list.csv", stringsAsFactors = TRUE)
+sey_trait_dat
+```
+
+
+#sum biomass by transect, and by transect/feeding group----
+```{r}
+
+##sum by transect only (total herbivore biomass)----
+sey_herb_biomass_transect<-
+  sey_herb_dat%>%
+  group_by(Island, Site, Transect)%>%
+  summarize(herb_biomass_kg_ha = sum(biomass.kgha))%>%
+  ungroup()
+sey_herb_biomass_transect
+
+##sum by transect and feeding group (herbivore biomass)----
+#need to keep FG.fine even when 0 for transect FG.finer_New
+sey_herb_biomass_transect_fg<-
+   sey_herb_dat%>%
+    select(Island, Site, Transect, FG.fine, biomass.kgha)%>%
+    droplevels()%>%
+  group_by_at(vars(-biomass.kgha)) %>%
+  summarise(biomass_kg_ha = sum(biomass.kgha)) %>%
+  ungroup %>%
+  complete(nesting(Island, Site, Transect,),
+           nesting(FG.fine),
+           fill = list(biomass_kg_ha = 0))
+
+sey_herb_biomass_transect_fg
+
+```
+
+##-------calculate productivity----
+#1. check if any individual fish lengths >= max length
+```{r}
+#will need to make any lengths >= max size < max size (because we're assuming lengths were slightly overestimated in the field), otherwise formula doesn't work
+
+sey_herb_dat%>%
+    filter(Size>=MaxSizeTL)
+#1 Chlorurus atrilunula = 38 - 38 (so equals max size, note had updated max size based on field surveys with many individuals > 30)
+#one Acanthurus tennentii = 31 - 31 (so equals max size)
+#one Ctenochaetus truncatus = 17 - 16 (so one cm > max size)
+
+sey_herb_dat_for_prod<-
+  sey_herb_dat%>%
+  mutate(Size = if_else(Size >= MaxSizeTL, (MaxSizeTL- 0.1),
+                            as.numeric(Size)))
+
+sey_herb_dat_for_prod
+
+#check if worked:
+sey_herb_dat_for_prod%>%
+    filter(Size>=MaxSizeTL)
+#YUP
+
+```
+
+
+#2. get Kmax - same for all
+```{r}
+#first check traits all good:
+sey_herb_dat_for_prod2<-tidytrait(sey_herb_dat_for_prod, sey_trait_dat,  levels.dataset = TRUE, include.method = FALSE)
+
+# Formula from Morais and Bellwood (2018) 
+fmod <- formula(~ sstmean + MaxSizeTL + Diet + Position + Method) #(recommended to use otolith for all)
+
+# Predicting Kmax, the standardised VBGF parameter (Recommendation: use 100s to 1000s iterations) 
+datagr <- predKmax(sey_herb_dat_for_prod2, 
+                   dataset = db, #default, and as suggested by help file for ?predKmax
+                   fmod = fmod,
+                   niter = 1000,  # so used 1000
+                   return = 'pred')
+
+datagr <- datagr$pred
+
+```
+
+
+##3. Cacluclate production over set time scale
+```{r}
+
+# Positioning your fish in their growth trajectory----
+with(datagr, applyVBGF(Lmeas = Size,
+                       t = 1, #number of days - defaults to 1 day. We will also use 1 day, as this matches turf productivity measurements (so both primary and secondary productivity calculated per day)
+                       Lmax = MaxSizeTL,
+                       Kmax = Kmax))
+
+#returns table, so bind with datagr:----
+datagr$Size_1 <- with(datagr, applyVBGF(Lmeas = Size,
+                       t = 1,
+                       Lmax = MaxSizeTL,
+                       Kmax = Kmax))
+
+# Estimating gross somatic growth (g) using length-weight relationships (a,b)----
+datagr$Biomass_gained_1<-with(datagr, somaGain(a = a,
+                      b = b,
+                      t = 1,
+                      Lmeas = Size,
+                      Lmax = MaxSizeTL,
+                      Kmax = Kmax))
+
+
+datagr
+#yup double-checked - this equals new size biomass - original size biomass, in grams* All good :)
+
+
+##convert from biomass gained in g to kg/ha:
+datagr<-
+  datagr%>%
+  mutate(Biomass_gained_1_kg_ha = Biomass_gained_1/Transect.area*10) # same as (Biomass_gained_1/1000)/(Area*10000):  convert g to kg (/1000) and m^2 to hectares (10000)
+datagr
+
+#note: ignored stochastic mortality, because when only looking at 1 day mortality is minimal, so does not affect results. Plus, now this is total potential productivity (which should be more relevant for this study/metrics)
+
+```
+
+
+
+#4. Sum by transect and transect + feeding group
+```{r}
+
+str(datagr)
+
+##sum by transect only (total herbivore productivity)----
+sey_herb_productivity_transect<-
+  datagr%>%
+  group_by(Island, Site, Transect)%>%
+  summarize(herb_productivity_kg_ha_day = sum(Biomass_gained_1_kg_ha))%>%
+  ungroup()
+sey_herb_productivity_transect
+
+##sum by transect and feeding group (herbivore biomass)----
+#need to keep FG.fine even when 0 for transect
+sey_herb_productivity_transect_fg<-
+  datagr%>%
+    select(Island, Site, Transect, FG.fine, Biomass_gained_1_kg_ha)%>%
+    droplevels()%>%
+  group_by_at(vars(-Biomass_gained_1_kg_ha)) %>%
+  summarise(productivity_kg_ha_day = sum(Biomass_gained_1_kg_ha)) %>%
+  ungroup %>%
+  complete(nesting(Island, Site, Transect),
+           nesting(FG.fine),
+           fill = list(productivity_kg_ha_day = 0))
+sey_herb_productivity_transect_fg
+
+
+```
+
+
+##now combine biomass and productivity data, save----
+```{r}
+sey_herb_biomass_transect
+sey_herb_biomass_transect_fg
+sey_herb_productivity_transect
+sey_herb_productivity_transect_fg
+
+
+##by transect----
+sey_herb_bio_prod_transect<-left_join(sey_herb_biomass_transect, sey_herb_productivity_transect, 
+                                      by = c("Island", "Site", "Transect"))
+sey_herb_bio_prod_transect
+
+
+##by transect and fg----
+sey_herb_bio_prod_transect_fg<-left_join(sey_herb_biomass_transect_fg, sey_herb_productivity_transect_fg, 
+                                      by = c("Island", "Site", "Transect", "FG.fine"))
+sey_herb_bio_prod_transect_fg
+
+
+#write csv's----
+#write.csv(sey_herb_bio_prod_transect, "../data/seychelles_herbivore_biomass_productivity_by_transect.csv")
+#write.csv(sey_herb_bio_prod_transect_fg, "../data/seychelles_herbivore_biomass_productivity_by_transect_and_feeding_group.csv")
+
+```
+
