@@ -1,0 +1,281 @@
+---
+title: "benthic-group-analysis"
+author: "CEB"
+date: '2025-03-21'
+output: html_document
+---
+
+
+#Use NMDS to look at benthic community, including turf cover, with environmental overlays
+
+#load packages
+```{r}
+library(tidyverse)
+
+#for plotting:
+library(cowplot)
+
+library(jtools)
+library(PNWColors)
+
+#for nmds
+library(vegan)
+
+```
+
+
+###set plot theme
+```{r}
+theme_casey<-
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        text = element_text(size = 14, family = "Arial"),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+        )
+
+theme_set(theme_casey) 
+  
+```
+
+
+#load  data and combine
+```{r}
+
+#herbivore info by feeding group (from productivity calculations file)----
+herbivore_fg_dat<-read.csv("../data/seychelles_herbivore_biomass_productivity_by_transect_and_feeding_group.csv")
+
+#add column for function (herbivores that remove turf):
+#based on Tebbett et al. 2022 - Croppers, Concealed Croppers, and Sediment Suckers all remove turf.
+#based on Bellwood et al.2019 - parrotfish (scraper and excavators) also remove turf.
+herbivore_fg_f_dat<-
+  herbivore_fg_dat%>%
+  mutate(FG.func = case_when(FG.how == "Cropper"|FG.how == "Concealed cropper"|FG.how == "Sediment sucker"|FG.how == "Excavator"|FG.how == "Scraper"~
+                               "Turf removal",
+                             TRUE~"No turf removal"))%>%
+  relocate(FG.func, .after = FG.what)
+herbivore_fg_f_dat  
+
+
+#combine groups:
+herbivore_fg_dat_func<-
+  herbivore_fg_f_dat%>%
+  group_by(Island, Site, Transect, FG.func)%>%
+  summarize(biomass_kg_ha = sum(biomass_kg_ha),
+            productivity_kg_ha_day = sum(productivity_kg_ha_day))
+
+
+#other necessary data:
+#transect level: 
+trans_site_all_dat<-read.csv("../data/seychelles_uvc_dat.csv")%>%
+ select(-X)
+
+
+#now with herbivores
+herbivore_fg_func_turf_dat<-left_join(herbivore_fg_dat_func, trans_site_all_dat,
+                                    by =c("Island", "Site", "Transect"))
+herbivore_fg_func_turf_dat
+
+```
+
+#reduce
+```{r}
+
+#just get biomass and prod for functions per site:
+herb_funct_dat<-
+  herbivore_fg_func_turf_dat%>%
+  select(Island, Site, Transect, FG.func, biomass_kg_ha, productivity_kg_ha_day, hard_coral, macroalgae, pavement, turf, CCA, dead, sand_rubble, structure, herb_biomass_kg_ha, herb_productivity_kg_ha_day, Exposure_J_m3, mean_turf_prod_mm_day, mean_turf_n15, mean_turf_height)%>%
+    pivot_wider(values_from = c(biomass_kg_ha, productivity_kg_ha_day), names_from = FG.func)%>%
+  rename("no_turf_removal_bio" = "biomass_kg_ha_No turf removal",
+         "turf_removal_bio" = "biomass_kg_ha_Turf removal",
+         "no_turf_removal_prod" = "productivity_kg_ha_day_No turf removal",
+         "turf_removal_prod" = "productivity_kg_ha_day_Turf removal")
+herb_funct_dat
+```
+
+###run NMDS - turf removers overlay
+```{r}
+#make community matrix:
+benth_dat_sp<-
+  herb_funct_dat%>%
+  ungroup()%>%
+  select(c(hard_coral:sand_rubble))
+
+
+##run NMDS-----
+benth_dat_nmds =metaMDS(benth_dat_sp, trymax=50, k=2, autotransform=FALSE, distance = "bray")
+#note: autotransform=FALSE to keep consistent with GCB paper
+
+benth_dat_nmds$stress # stress = 0.07453101 - seems fine
+
+
+####rotate by turf n15 so can more easily interpret----
+benth_dat_nmds.rotate<-MDSrotate(benth_dat_nmds, herb_funct_dat$mean_turf_n15)
+benth_dat_nmds.rotate
+
+scores(benth_dat_nmds.rotate, display="species")
+cor(benth_dat_sp, scores(benth_dat_nmds.rotate, dis="si"))
+#                NMDS1       NMDS2
+#hard_coral   0.95910730  0.2289932
+#macroalgae   0.22970340  0.4483320
+#pavement     0.16995066  0.7681113
+#turf        -0.35957507  0.4152136
+#CCA          0.07291886  0.5012828
+#dead         0.20787939  0.1888698
+#sand_rubble -0.74022973 -0.8934088
+
+
+
+##extract site/transect scores (rotated)----
+benth_spp.sc.rotate <- as.data.frame(scores(benth_dat_nmds.rotate, display = "species")) %>% #Using the scores function from vegan to extract the species scores and convert
+   rownames_to_column(var="Species")%>% # create a column of species, from the rownames of species.scores
+    mutate(Species2 = c("hard coral", "macroalgae", "pavement", "turf algae", "CCA", "dead coral", "sand/rubble"))
+  
+  benth_spp.sc.rotate
+
+benth_site.sc.rotate <- scores(benth_dat_nmds.rotate, display = "sites", shrink = FALSE) 
+benth_site.sc.rotate
+
+#merge site.sc with site and transect
+benth_scores_meta_rotate<-
+  bind_cols(herb_funct_dat,
+                    as_tibble(benth_site.sc.rotate))%>%
+  unite(Island_site, Island, Site, remove = FALSE)
+
+
+ord.fit.benth.rotate<-envfit(benth_dat_nmds.rotate~no_turf_removal_bio + turf_removal_bio  + no_turf_removal_prod + turf_removal_prod  + Exposure_J_m3 + mean_turf_prod_mm_day + mean_turf_n15 + structure, data = benth_scores_meta_rotate)
+
+ord.fit.benth.rotate 
+#no_turf_removal_bio    0.47254 -0.88131 0.0220  0.831    
+#turf_removal_bio       0.33103 -0.94362 0.2574  0.073 .  
+#no_turf_removal_prod   0.86442 -0.50277 0.0748  0.562    
+#turf_removal_prod      0.23108 -0.97293 0.1130  0.369    
+#Exposure_J_m3          0.86818  0.49626 0.6876  0.001 ***
+#mean_turf_prod_mm_day  0.93316 -0.35946 0.1240  0.294    
+#mean_turf_n15          1.00000  0.00000 0.5444  0.002 ** 
+#structure              0.57952  0.81496 0.3389  0.027 *  
+
+#biomass maybe more important because larger fish contribute more to biomass, and also more to turf removal! Whereas smaller fish contribue more to secondary productivity, but not as much to turf removal. (non-linear scaling of bites and grazing rates)
+
+#don't plot non-turf removers because hard to see on plot:
+ord.fit.benth.rotate<-envfit(benth_dat_nmds.rotate~ turf_removal_bio   + turf_removal_prod  + Exposure_J_m3 + mean_turf_prod_mm_day + mean_turf_n15 + structure, data = benth_scores_meta_rotate)
+
+ord.fit.benth.rotate 
+
+
+##get arrows: -------
+benth_arrows.rotate   <- 
+  as.data.frame(scores(ord.fit.benth.rotate  , display = "vectors")* ordiArrowMul(ord.fit.benth.rotate))%>%
+  rownames_to_column("variable")%>%
+    mutate(variable2 = c( "turf-removing herbivore biomass",  "turf-removing herbivore productivity",
+                      "exposure",  "turf productivity", "turf nutrients", "structure"))
+
+#  mutate(variable2 = c( "herbivore biomass (no turf removal)", "herbivore biomass (turf remvoal)", 
+    #                    "herbivore productivity (no turf removal)", "herbivore productivity (turf removal)",
+  #                    "exposure",  "turf productivity", "turf nutrients", "structure"))
+
+
+#get convex hulls for polygons
+hull_benth_Aride<-benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Aride", ][chull(benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Aride", ]$NMDS1, benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Aride", ]$NMDS2), ] 
+
+hull_benth_Cousine<-benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Cousine", ][chull(benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Cousine", ]$NMDS1, benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Cousine", ]$NMDS2), ] 
+
+hull_benth_Felicite<-benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Felicite", ][chull(benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Felicite", ]$NMDS1, benth_scores_meta_rotate[benth_scores_meta_rotate$Island == "Felicite", ]$NMDS2), ] 
+
+hull_benth_Fregate_Low<-benth_scores_meta_rotate[benth_scores_meta_rotate$Island_site == "Fregate_Low", ][chull(benth_scores_meta_rotate[benth_scores_meta_rotate$Island_site == "Fregate_Low", ]$NMDS1, benth_scores_meta_rotate[benth_scores_meta_rotate$Island_site == "Fregate_Low", ]$NMDS2), ] 
+
+hull_benth_Fregate_High<-benth_scores_meta_rotate[benth_scores_meta_rotate$Island_site == "Fregate_High", ][chull(benth_scores_meta_rotate[benth_scores_meta_rotate$Island_site == "Fregate_High", ]$NMDS1, benth_scores_meta_rotate[benth_scores_meta_rotate$Island_site == "Fregate_High", ]$NMDS2), ] 
+
+
+hull_benth.data <- rbind(hull_benth_Aride, hull_benth_Cousine, hull_benth_Felicite, hull_benth_Fregate_Low, hull_benth_Fregate_High)  #combine grp.a and grp.b
+hull_benth.data
+
+
+## plot:----
+pal=pnw_palette("Sunset2",5, type = "discrete")
+
+benth_scores_meta_rotate2<-
+  benth_scores_meta_rotate%>%
+  mutate(Island_Site = 
+           case_when(Island == "Aride" ~ "Aride",
+                     Island == "Cousine" ~ "Cousine",
+                     Island == "Felicite" ~ "Félicité",
+                     Site == "High" ~ "Fregate NE",
+                     Site == "Low" ~ "Fregate SW"))
+
+
+hull_benth.data2<-
+   hull_benth.data%>%
+  mutate(Island_Site = 
+           case_when(Island == "Aride" ~ "Aride",
+                     Island == "Cousine" ~ "Cousine",
+                     Island == "Felicite" ~ "Félicité",
+                     Site == "High" ~ "Fregate NE",
+                     Site == "Low" ~ "Fregate SW"))
+
+
+benth_nmds_plot<-
+ggplot() + 
+  geom_point(data=benth_scores_meta_rotate2 ,aes(x=NMDS1,y=NMDS2,colour=Island_Site, fill = Island_Site), stat="identity", size=1, alpha = .7) +
+ geom_polygon(data=hull_benth.data2,aes(x=NMDS1,y=NMDS2,fill=Island_Site,group=Island_Site, colour = Island_Site),alpha = 0.05, linetype=1, lwd = .1) + # add the 
+  geom_text(data=benth_spp.sc.rotate ,aes(x=NMDS1,y=NMDS2 ,label=Species2), alpha = .95, vjust = "outward", hjust = "outward", size = 3) +  # add the species labels -  hjust = "inward"
+    geom_point(data=benth_spp.sc.rotate ,aes(x=NMDS1,y=NMDS2), alpha = .95, color = "black", pch = 17) +  # add the species labels -  hjust = "inward"
+  geom_segment(data = benth_arrows.rotate ,
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "gray48", alpha= .75) +
+    geom_text(data = benth_arrows.rotate, aes(x = NMDS1, y = NMDS2, label = variable2), color = "gray48",
+               hjust = "outward", size = 3)+ #hjust = c(.75,.4),  , vjust = -1, , hjust = "inward"
+    scale_fill_manual(values = pal)+
+   scale_color_manual(values = pal)+
+    labs(color = "", fill = "")+
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = "none",
+        #legend.position = c(.85,.25),
+        text=element_text(size = 8),
+        legend.box = "horizontal",
+        legend.background = element_blank())
+benth_nmds_plot
+
+```
+
+
+####combine with herbivore nmds plots:
+```{r}
+benth_nmds_plot
+supp_nmds_fig
+herb_bio_nmds_plot
+herb_prod_nmds_plot
+
+spacer <- ggplot() + theme_void()
+
+bottom_row<-plot_grid(spacer, benth_nmds_plot, spacer, rel_widths = c(1,2,1), nrow =1)
+
+supp_nmds_fig_all<-plot_grid(supp_nmds_fig, bottom_row, nrow = 2 )
+supp_nmds_fig_all
+
+
+ggsave(filename = "../outputs/figures/supp_nmds_fig_all.png", 
+       plot = supp_nmds_fig_all,
+       width = 25, 
+      height = 22,
+      units = "cm",
+       dpi = 300)
+
+
+
+ggsave(filename = "../outputs/figures/supp_nmds_fig_all.pdf", 
+      plot = supp_nmds_fig_all,
+       width = 25, 
+       height = 22,
+      units = "cm",
+       dpi = 300)
+
+
+```
+
+

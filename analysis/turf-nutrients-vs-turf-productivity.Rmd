@@ -42,165 +42,98 @@ theme_set(theme_casey)
 
 #load  data 
 ```{r}
-#turf pp----
-turf_pp<-read.csv("../data/seychelles_turf_primary_productivity.csv")
-str(turf_pp)
 
-
-##turf isotopes----
-turf_dat<-read.csv("../data/seychelles_isotope_data.csv")%>%
-   filter(Sample.Type == "Turf algae")
-str(turf_dat)
-
+turf_pp_cage_all_dat<- read.csv("../data/seychelles_turf_pp_by_cage_dat.csv") #from data prep file
 
 ```
-
-##Data prep - average by cage then calculate growth, combine growth + N15 data
-```{r}
-#Average by cage, then calculate growth----
-pp_cage<-
-  turf_pp%>%
-  group_by(Island, Site, Observer, Cage,Number.Hours)%>%
-  summarize(Average_turf_height_initial = mean(Initial.Height, na.rm = TRUE),
-            Average_turf_height_final = mean(Final.Height, na.rm = TRUE),
-            se_turf_height_initial = sd(Initial.Height, na.rm = TRUE)/sqrt(length(Initial.Height)),
-            se_turf_height_final = sd(Final.Height, na.rm = TRUE)/sqrt(length(Final.Height)))%>%
-  mutate(
-            Turf_growth_total = Average_turf_height_final-Average_turf_height_initial,
-            Turf_growth_per_hour = Turf_growth_total/Number.Hours,
-            Turf_growth_mm_per_day = Turf_growth_per_hour*24)%>%
-  ungroup()
-pp_cage
-
-
-#adjust column names for combining----
-turf_dat_for_comb<-
-  turf_dat%>%
-  rename(Cage = Turf.cage.number, Turf_N15 = N15)%>%
-  select(-c(Sample.Type, Species))
-
-
-###combine data----
-str(pp_cage)
-str(turf_dat_for_comb)
-
-
-turf_pp_cage_iso_dat<-left_join(pp_cage, turf_dat_for_comb,
-               by = c("Island", "Site", "Cage"))
-
-turf_pp_cage_iso_dat
-
-
-#check sample sizes per site:----
-turf_pp_cage_iso_dat%>%
-  group_by(Island, Site)%>%
-  summarize(N_cage = length(Turf_growth_mm_per_day))
-#Aride	Site 1	10		
-#Cousine	Site 1	9	- because one was completely bare when returned to remeasure (invert grazing?)
-#Felicite	Site 1	9	- because one was completely bare when returned to remeasure (invert grazing?)
-#Fregate	High	10		
-#Fregate	Low	8	- because 2 cages missing when returned to remeasure
-
-
-#write csv for other analyses-----
-#write.csv(turf_pp_cage_iso_dat, "../data/seychelles_turf_pp_iso_by_cage.csv")
-
-```
-
 
 
 ##Bayesian analysis based on DAGs - Hypothesis 3: effect of turf nutrients on turf growth
 ```{r}
+#total effect = control for exposure (all other variables controlled for)
+#direct effect = control for exposure and turf height
 
 #add column for scaled data:----
-turf_pp_cage_iso_dat_cs<-
-  turf_pp_cage_iso_dat%>%
-  mutate(turf_n15_cs = base::scale(Turf_N15, center = TRUE, scale = TRUE),
-         turf_n15_c = base::scale(Turf_N15, center = TRUE, scale = FALSE))
-turf_pp_cage_iso_dat_cs
+turf_pp_cage_all_dat_c<-
+  turf_pp_cage_all_dat%>%
+  mutate(turf_n15_c = base::scale(Turf_N15, center = TRUE, scale = FALSE),
+         exposure_c = base::scale(Exposure_J_m3, center = TRUE, scale = FALSE),
+         turf_height_c = base::scale(Average_turf_height_initial, center = TRUE, scale = FALSE))
+turf_pp_cage_all_dat_c
 
 #brms models------
-#see previous file for other options/build-up
 
-#linear model, uninformative prior: 
-turf_pp_nutrients_brms<-
+#linear model, uninformative prior, direct path:
+turf_pp_nutrients_direct_brms<-
   brm(
- Turf_growth_mm_per_day~turf_n15_c + (1|Island),
-  data = turf_pp_cage_iso_dat_cs, 
+ Turf_growth_mm_per_day~turf_n15_c + exposure_c + turf_height_c + (1|Island),
+  data = turf_pp_cage_all_dat_c, 
   iter = 3000, warmup = 1000, chains = 4, cores = 4,
    control = list(adapt_delta = 0.999, max_treedepth = 15), 
-      file = "../outputs/brms/turf_pp_nutrients_brms") #all good
-print(turf_pp_nutrients_brms) #1 divergent trans
+      file = "../outputs/brms/turf_pp_nutrients_direct_brms") #all good
+print(turf_pp_nutrients_direct_brms) #all good
 
-pp_check(turf_pp_nutrients_brms) #looks good
-plot(turf_pp_nutrients_brms) #looks good
+pp_check(turf_pp_nutrients_direct_brms) #looks good
+plot(turf_pp_nutrients_direct_brms, ask = FALSE) #looks good
 
-hypothesis(turf_pp_nutrients_brms, "turf_n15_c>0") 
+hypothesis(turf_pp_nutrients_direct_brms, "turf_n15_c>0") 
 #hypothesis              est      error     lower     upper       evidence ratio        posterior probability
-#(turf_n15_c) > 0       	0.05	  0.03	    0.01      	0.1	           38.22            	0.97	*
-
-
-
-#set intercept prior to help with sampling:----
-turf_pp_prior<-
-     #expect positive effect of n15, but never been tested...so just leave b as uninformative/default to be conservative
-    set_prior("normal(.19, .1)", class = "Intercept") #Tebbett et al meta-anlaysis: natural substratum turf growth = 0.19 mm day +/- 0.01. 
-
-
-turf_pp_nutrients_brms_wprior<-
-  brm(
- Turf_growth_mm_per_day~turf_n15_c + (1|Island),
-  data = turf_pp_cage_iso_dat_cs, 
-  iter = 3000, warmup = 1000, chains = 4, cores = 4,
-   control = list(adapt_delta = 0.999, max_treedepth = 15), 
-  sample_prior="yes",
-      prior = turf_pp_prior,
-      file = "../outputs/brms/turf_pp_nutrients_brms_wprior") #all good
-print(turf_pp_nutrients_brms_wprior) #worked!
-
-plot(turf_pp_nutrients_brms_wprior) #looks pretty good
-pp_check(turf_pp_nutrients_brms_wprior) #looks pretty good
-
-plot(hypothesis(turf_pp_nutrients_brms_wprior, "turf_n15_c>0"))
-hypothesis(turf_pp_nutrients_brms_wprior, "turf_n15_c>0") 
-#hypothesis              est      error     lower     upper       evidence ratio        posterior probability
-#(turf_n15_c) > 0       0.05	      0.03      	0	    0.09	        25.06	            0.96	*
-#nearly identical as without prior, so that's good*
+#(turf_n15_c) > 0        0.04	      0.03	    0	        0.09	        14.75	                0.94	  
 
 
 #extract some values:------
-turf_pp_nutrients_brms_wprior %>%
+turf_pp_nutrients_direct_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
-#b_log_seabird      lower       upper     width   point     interval
-# 0.0503543	      -0.00390656	  0.1061637	0.95	median	hdi
+#b_log_seabird      lower       upper       width   point     interval
+# 0.04407482  	-0.01498565	  0.1029343			  0.95	median	hdi
+#so for each one unit increase in turf n15, turf growth increases by 0.04 mm/day
 
+
+#linear model, uninformative prior, total effect:
+turf_pp_nutrients_total_brms<-
+  brm(
+ Turf_growth_mm_per_day~turf_n15_c + exposure_c  + (1|Island),
+  data = turf_pp_cage_all_dat_c, 
+  iter = 3000, warmup = 1000, chains = 4, cores = 4,
+   control = list(adapt_delta = 0.999, max_treedepth = 15), 
+      file = "../outputs/brms/turf_pp_nutrients_total_brms") #all good
+print(turf_pp_nutrients_total_brms) #all good
+
+pp_check(turf_pp_nutrients_total_brms) #looks good
+plot(turf_pp_nutrients_total_brms, ask = FALSE) #looks good
+
+hypothesis(turf_pp_nutrients_total_brms, "turf_n15_c>0") 
+#hypothesis              est      error     lower     upper       evidence ratio        posterior probability
+#(turf_n15_c) > 0       0.05      	0.03    	0.01    	0.1	        31.79	                0.97	*
+
+
+#extract some values:------
+turf_pp_nutrients_total_brms %>%
+  spread_draws(b_turf_n15_c) %>%
+  median_hdi(b_turf_n15_c)
+#b_log_seabird      lower       upper       width   point     interval
+# 0.05556064	-0.0004065733	0.1137147	    0.95    	median	hdi
 #so for each one unit increase in turf n15, turf growth increases by 0.05 mm/day
-#equivalent to .35 mm/week
 
-#compare to no prior:
-turf_pp_nutrients_brms %>%
-  spread_draws(b_turf_n15_c) %>%
-  median_hdi(b_turf_n15_c)
-#b_log_seabird      lower            upper     width   point     interval
-# 0.0503543	        -0.00390656	   0.1061637	0.95	median	hdi #with prior
-# 0.05165433      	7.689889e-05	  0.1042902	0.95	median	hdi #without prior
 
-#nearly identical**
+
+#note: results are nearly identical to original model without exposure, and to models with exposure only (based on DAG without link from prior herbivory to N15) - findings robust to DAG decisions.
+#no need for priors - sampling working well
 
 ```
 
-##plot it-----
+##plot it (total effect)-----
 ```{r}
 #plot partialized residuals-----
-me_n15<-conditional_effects(turf_pp_nutrients_brms_wprior, prob = .75, effects = 'turf_n15_c', plot = FALSE)[[1]]
+me_n15<-conditional_effects(turf_pp_nutrients_total_brms, prob = .75, effects = 'turf_n15_c', plot = FALSE)[[1]]
 
 #extract partialized residuals
-p_n15<-partialize(turf_pp_nutrients_brms_wprior, vars= "turf_n15_c",  data = turf_pp_cage_iso_dat_cs)
+p_n15<-partialize(turf_pp_nutrients_total_brms, vars= "turf_n15_c",  data = turf_pp_cage_all_dat_c)
 
 
 #get data for un-centering:
-mean(turf_pp_cage_iso_dat_cs$Turf_N15, na.rm=TRUE) #4.67381
+mean(turf_pp_cage_all_dat_c$Turf_N15, na.rm=TRUE) #4.67381
 
 me_turf_n15_pp_unscale<-
   me_n15%>%
@@ -210,7 +143,7 @@ me_turf_n15_pp_unscale<-
 
 ##correct colour plots - combine and save-----
 turf_pp_post_plot<-
-turf_pp_nutrients_brms_wprior %>%
+turf_pp_nutrients_total_brms %>%
   spread_draws(b_turf_n15_c) %>%
   ggplot(aes(y = 0, x = b_turf_n15_c, fill = "#EE7733")) +
   stat_halfeye(point_interval=median_hdi, .width=c(.95, .75), fatten_point = 2, slab_alpha = 0.6) +
@@ -238,7 +171,7 @@ p_n15 %>%
      #  geom_jitter(color = "#EE7733", fill = "#EE7733", alpha = 0.4, size = 3, width=.05, height = 0) + #, size = .8  
      geom_point(color = "#EE7733", fill = "#EE7733", alpha = 0.4, size = 3) + #, size = .8  width=.07, height = 0,
     geom_ribbon(data = me_turf_n15_pp_unscale, aes(ymin = lower__, ymax=upper__), alpha = .2, fill = "#EE7733")+
-    geom_line(data = me_turf_n15_pp_unscale, aes(x = Turf_N15, y = estimate__), lwd = 1.2, colour = "#EE7733") +
+    geom_line(data = me_turf_n15_pp_unscale, aes(x = Turf_N15, y = estimate__), lwd = 1.2, colour = "#EE7733") + ##scale line thickness to PP - >0.9 = 1.2 (original thickness)
 xlab(expression(paste("Turf ", delta^15, "N"))) + 
   ylab(bquote(Turf~productivity~(mm~day^-1)))+
   theme_bw()+
@@ -264,15 +197,154 @@ turf.pp.n15.plot.with.inset
 #      plot = turf.pp.n15.plot.with.inset,  width = 11,       height = 7.5,   units = "cm",     dpi = 300)
 
 
+```
+
+
+#also look at proportional growth to make sure this n15 effect isn't driven by initial turf height:
+```{r}
+turf_pp_cage_all_dat_prop<-
+  turf_pp_cage_all_dat%>%
+  mutate( Prop_turf_growth_day = Turf_growth_mm_per_day/Average_turf_height_initial) #decided to use growth per day, based on previous turf PP studies, but here compared to account for turf height
+turf_pp_cage_all_dat
+
+
+#report initial heights in manuscript:----
+turf_pp_cage_all_dat_prop%>%
+  group_by(Island, Site)%>%
+  summarize(mean_initial_height = mean(Average_turf_height_initial))
+
+turf_pp_cage_all_dat_prop%>%
+  group_by(Island, Site)%>%
+  summarize(min_init_height = min(Average_turf_height_initial),
+            max_init_height = max(Average_turf_height_initial))
+
+
+#bayesian model for prop growth-----
+#don't need initial height in these models - already accounted for in response (so just look at total effect):
+#add column for scaled data:----
+turf_pp_cage_all_dat_prop_c<-
+  turf_pp_cage_all_dat_prop%>%
+  mutate(turf_n15_c = base::scale(Turf_N15, center = TRUE, scale = FALSE),
+         exposure_c = base::scale(Exposure_J_m3, center = TRUE, scale = FALSE))
+turf_pp_cage_all_dat_prop_c
+
+#brms models------
+
+#linear model, uninformative prior: 
+prop_turf_pp_nutrients_brms<-
+  brm(
+ Prop_turf_growth_day~turf_n15_c + exposure_c + (1|Island),
+  data = turf_pp_cage_all_dat_prop_c, 
+  iter = 3000, warmup = 1000, chains = 4, cores = 4,
+   control = list(adapt_delta = 0.999, max_treedepth = 15), 
+      file = "../outputs/brms/prop_turf_pp_nutrients_brms") #all good
+print(prop_turf_pp_nutrients_brms) #all good
+
+pp_check(prop_turf_pp_nutrients_brms) #looks good
+plot(prop_turf_pp_nutrients_brms, ask = FALSE) #looks good
+
+hypothesis(prop_turf_pp_nutrients_brms, "turf_n15_c>0") 
+#hypothesis              est      error     lower     upper       evidence ratio        posterior probability
+# (turf_n15_c) > 0        0.03	     0.02	    0.01	0.06	          46.06                 	0.98	*
+#nearly identical to raw data model
+
+
+#extract some values:------
+prop_turf_pp_nutrients_brms %>%
+  spread_draws(b_turf_n15_c) %>%
+  median_hdci(b_turf_n15_c)
+#b_log_seabird      lower       upper       width   point     interval
+#0.03454716	      0.001523137	  0.06772498				  0.95	median	hdi
+#.034 increase in proportional growth
+
+
+
+###plot it------
+#plot partialized residuals-----
+me_n15_prop<-conditional_effects(prop_turf_pp_nutrients_brms, prob = .75, effects = 'turf_n15_c', plot = FALSE)[[1]]
+
+#extract partialized residuals
+p_n15_prop<-partialize(prop_turf_pp_nutrients_brms, vars= "turf_n15_c",  data = turf_pp_cage_all_dat_prop_c)
+
+
+#get data for un-centering:
+mean(turf_pp_cage_all_dat_prop_c$Turf_N15, na.rm=TRUE) #4.67381
+
+me_n15_prop_unscale<-
+  me_n15_prop%>%
+  mutate(Turf_N15 = (turf_n15_c  + 4.67381 )) #+ mean
+
+
+
+##correct colour plots - combine and save-----
+turf_pp_prop_post_plot<-
+prop_turf_pp_nutrients_brms %>%
+  spread_draws(b_turf_n15_c) %>%
+  ggplot(aes(y = 0, x = b_turf_n15_c, fill = "#EE7733")) +
+  stat_halfeye(point_interval=median_hdi, .width=c(.95, .75), fatten_point = 2, slab_alpha = 0.6) +
+  scale_fill_manual(values = alpha(c("#EE7733"),0.3))+
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme_bw() + 
+  xlab("")+
+  ylab("")+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        legend.position = "none",  
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA),
+       # text=element_text(size=16,  family="sans"),
+          axis.text.y = element_blank(),
+        axis.ticks.y = element_blank())
+turf_pp_prop_post_plot
+
+
+
+turf_pp_n15_prop_part_plot<-
+p_n15_prop %>%
+  ggplot(aes(x = Turf_N15, y = Prop_turf_growth_day)) +
+     #  geom_jitter(color = "#EE7733", fill = "#EE7733", alpha = 0.4, size = 3, width=.05, height = 0) + #, size = .8  
+     geom_point(color = "#EE7733", fill = "#EE7733", alpha = 0.4, size = 3) + #, size = .8  width=.07, height = 0,
+    geom_ribbon(data = me_n15_prop_unscale, aes(ymin = lower__, ymax=upper__), alpha = .2, fill = "#EE7733")+
+    geom_line(data = me_n15_prop_unscale, aes(x = Turf_N15, y = estimate__), lwd = 1.2, colour = "#EE7733") + ##scale line thickness to PP - >0.9 = 1.2 (original thickness)
+xlab(expression(paste("Turf ", delta^15, "N"))) + 
+  ylab(bquote(Turf~productivity~(proportional~growth~day^-1)))+
+  theme_bw()+
+    guides(size = "none", colour = "none",  fill = guide_legend(title="Confidence level")) + 
+    theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+    #            text = element_text(size = 24),
+        legend.position='none')
+turf_pp_n15_prop_part_plot
+
+##combine and save---------
+##make inset plots, then combine and save:
+turf.pp.n15.plot.with.inset.prop <-
+  ggdraw() +
+  draw_plot(turf_pp_n15_prop_part_plot) +
+  draw_plot(turf_pp_prop_post_plot, x = 0.1, y = .64, width = .35, height = .35)
+turf.pp.n15.plot.with.inset.prop
+
+
+# Can save the plot with ggsave()
+#ggsave(filename = "../outputs/figures/figure3_turf_productivity_by_n15.png", 
+#      plot = turf.pp.n15.plot.with.inset,  width = 11,       height = 7.5,   units = "cm",     dpi = 300)
+
+
+
+
+
 
 ```
 
 
-##re-plot for supplemental figure (because reverse dag doesn't change this part)
+
+##re-plot for alternative dag figure (because changing dag doesn't change this part)
 ```{r}
 
-turf_pp_post_plot_reverse<-
-turf_pp_nutrients_brms_wprior %>%
+turf_pp_post_plot_alt<-
+turf_pp_nutrients_total_brms %>%
   spread_draws(b_turf_n15_c) %>%
   ggplot(aes(y = 0, x = b_turf_n15_c, fill = after_stat(x < 0))) +
   stat_halfeye(point_interval=median_hdi, .width=c(.95, .75), fatten_point = 1, slab_alpha = 0.6) +
@@ -291,17 +363,10 @@ turf_pp_nutrients_brms_wprior %>%
         text=element_text(size=10,  family="sans"),
           axis.text.y = element_blank(),
         axis.ticks.y = element_blank())
-turf_pp_post_plot_reverse
+turf_pp_post_plot_alt
 
 #Save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/supp_fig_turf_pp_post_plot_reverse.pdf", plot = turf_pp_post_plot_reverse,  width = 8,   height = 5,  units = "cm", dpi = 300)
+#ggsave(filename = "../outputs/figures/turf_pp_post_plot_alt.pdf", plot = turf_pp_post_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
 ```
 
-
-
-
-#compare to log model??
-```{r}
-#    log_turf_growth = log(Turf_growth_mm_per_day)
-```
 

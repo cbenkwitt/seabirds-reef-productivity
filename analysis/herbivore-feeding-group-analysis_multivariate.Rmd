@@ -1,0 +1,406 @@
+---
+title: "herbivore-feeding-group-analysis"
+author: "CEB"
+date: '2024-09-25'
+output: html_document
+---
+
+#Use NMDS to look at herbivore community, by feeding group, with environmental overlays
+
+
+#load packages
+```{r}
+library(tidyverse)
+
+#for plotting:
+library(cowplot)
+
+library(jtools)
+library(PNWColors)
+
+#for nmds
+library(vegan)
+
+```
+
+
+###set plot theme
+```{r}
+theme_casey<-
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        text = element_text(size = 14, family = "Arial"),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+        )
+
+theme_set(theme_casey) 
+  
+```
+
+
+#load  data and combine
+```{r}
+
+#herbivore info by feeding group (from productivity calculations file)----
+herbivore_fg_dat<-read.csv("../data/seychelles_herbivore_biomass_productivity_by_transect_and_feeding_group.csv")
+
+
+herbivore_fg_dat_how<-
+  herbivore_fg_f_dat%>%
+  group_by(Island, Site, Transect, FG.how)%>%
+  summarize(biomass_kg_ha = sum(biomass_kg_ha),
+            productivity_kg_ha_day = sum(productivity_kg_ha_day))
+
+
+#other necessary data:
+#transect level: 
+trans_site_all_dat<-read.csv("../data/seychelles_uvc_dat.csv")%>%
+  select(-X)
+
+
+#now with herbivores
+herbivore_fg_how_turf_dat<-left_join(herbivore_fg_dat_how, trans_site_all_dat, 
+                                    by =c("Island", "Site", "Transect"))
+herbivore_fg_how_turf_dat
+
+
+```
+
+###run NMDS----
+
+###set up:----
+```{r}
+library(vegan)
+
+
+##BIOMASS---------
+#fg how (combine cropper and concealed cropper):---
+herbivore_fg_how_wide<-
+  herbivore_fg_how_turf_dat%>%
+  mutate(FG.how = case_when(FG.how == "Concealed cropper"~"Cropper",
+                            TRUE~FG.how))%>%
+  pivot_wider(values_from = "biomass_kg_ha", names_from = "FG.how", id_cols = c(Island, Site, Transect, pred_biomass_kg_ha,
+                                                                              structure, hard_coral,
+                                                                              turf, other_grazeable, available_sub, Exposure_J_m3, mean_turf_prod_mm_day,
+                                                                              mean_turf_height, mean_turf_n15) ,
+              values_fn = sum)# combine 2 cropper rows
+herbivore_fg_how_wide
+
+#make community matrix:
+herbivore_fg_how_wide_sp<-
+  herbivore_fg_how_wide%>%
+  ungroup()%>%
+  select(c(Browser:"Sediment sucker"))
+herbivore_fg_how_wide_sp
+
+
+
+##PRODUCTIVITY---------
+#fg how (combine cropper and concealed cropper):---
+herbivore_fg_how_wide_prod<-
+  herbivore_fg_how_turf_dat%>%
+  mutate(FG.how = case_when(FG.how == "Concealed cropper"~"Cropper",
+                            TRUE~FG.how))%>%
+  pivot_wider(values_from = "productivity_kg_ha_day", names_from = "FG.how", id_cols = c(Island, Site, Transect, pred_biomass_kg_ha,
+                                                                              structure, hard_coral,
+                                                                              turf, other_grazeable, available_sub, Exposure_J_m3, mean_turf_prod_mm_day,
+                                                                              mean_turf_height, mean_turf_n15) ,
+              values_fn = sum)# combine 2 cropper rows
+herbivore_fg_how_wide_prod
+
+#make community matrix:
+herbivore_fg_how_wide_prod_sp<-
+  herbivore_fg_how_wide_prod%>%
+  ungroup()%>%
+  select(c(Browser:"Sediment sucker"))
+herbivore_fg_how_wide_sp
+
+```
+
+###run NMDS - HOW BIOMASS
+```{r}
+
+##run NMDS-----
+sey_herb_how_bio_nmds =metaMDS(herbivore_fg_how_wide_sp, trymax=50, k=2, autotransform=FALSE, distance = "bray")
+
+sey_herb_how_bio_nmds$stress # stress = 0.1375324 - seems fine 
+
+
+####rotate by turf prod so can more easily interpret----
+sey_herb_how_bio_nmds.rotate<-MDSrotate(sey_herb_how_bio_nmds, herbivore_fg_how_wide$mean_turf_n15)
+sey_herb_how_bio_nmds.rotate
+
+scores(sey_herb_how_bio_nmds.rotate, display="species")
+cor(herbivore_fg_how_wide_sp, scores(sey_herb_how_bio_nmds.rotate, dis="si"))
+#note: equivalent to - cor(herbivore_fg_how_wide_sp,  sey_herb_how_bio_nmds.rotate$points, use = "complete.obs", method = "pearson")
+
+#                        NMDS1       NMDS2
+#Browser          0.50866875 -0.2858645
+#Brusher          0.52864442  0.1372508
+#Cropper          0.75526213  0.3870815
+#Excavator        0.08747456 -0.4058426
+#Farmer          -0.64169140 -0.1810732
+#Scraper         -0.17088796 -0.8611388
+#Sediment sucker  0.13362106 -0.5333467
+
+
+
+##extract site/transect scores (rotated)----
+herb_how_bio_spp.sc.rotate <- as.data.frame(scores(sey_herb_how_bio_nmds.rotate, display = "species")) %>% #Using the scores function from vegan to extract the species scores and convert
+   rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
+herb_how_bio_spp.sc.rotate
+
+herb_how_bio_site.sc.rotate <- scores(sey_herb_how_bio_nmds.rotate, display = "sites", shrink = FALSE) 
+herb_how_bio_site.sc.rotate
+
+#merge site.sc with site and transect
+herb_how_bio_dat_scores_meta_rotate<-
+  bind_cols(herbivore_fg_how_wide,
+                    as_tibble(herb_how_bio_site.sc.rotate))%>%
+  unite(Island_site, Island, Site, remove = FALSE)
+
+
+#check correlations with environmental overlays: 
+sey_herb_how_bio_nmds.rotate.ord.fit<-envfit(sey_herb_how_bio_nmds.rotate~ turf   + structure +  Exposure_J_m3 + mean_turf_prod_mm_day  + mean_turf_n15  + pred_biomass_kg_ha, data = herb_how_bio_dat_scores_meta_rotate)
+sey_herb_how_bio_nmds.rotate.ord.fit 
+#                         NMDS1    NMDS2     r2 Pr(>r)    
+#turf                   0.53747  0.84329 0.1181  0.349   
+#structure              0.91380  0.40617 0.2573  0.081 . 
+#Exposure_J_m3          0.87481  0.48447 0.1135  0.377   
+#mean_turf_prod_mm_day  0.95491 -0.29688 0.5232  0.004 **
+#mean_turf_n15          1.00000  0.00000 0.3097  0.056 . 
+#pred_biomass_kg_ha     0.28121 -0.95964 0.1495  0.241 
+
+#strongest corrs = turf productivity (0.52), turf n15 (0.31), and structure (0.26)
+
+
+##get arrows: -NEED TO MULTIPLY BY * ordiArrowMul())----
+herb_how_bio_arrows.rotate   <- 
+  as.data.frame(scores(sey_herb_how_bio_nmds.rotate.ord.fit  , display = "vectors")*ordiArrowMul(sey_herb_how_bio_nmds.rotate.ord.fit))%>%
+  rownames_to_column("variable")%>%
+  mutate(variable2 = c("turf cover", "structure", "exposure", "turf productivity", "turf nutrients", "predators"))
+
+
+#get convex hulls for polygons------
+hull_Aride<-herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Aride", ][chull(herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Aride", ]$NMDS1, herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Aride", ]$NMDS2), ] 
+
+hull_Cousine<-herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Cousine", ][chull(herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Cousine", ]$NMDS1, herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Cousine", ]$NMDS2), ] 
+
+hull_Felicite<-herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Felicite", ][chull(herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Felicite", ]$NMDS1, herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island == "Felicite", ]$NMDS2), ] 
+
+hull_Fregate_Low<-herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island_site == "Fregate_Low", ][chull(herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island_site == "Fregate_Low", ]$NMDS1, herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island_site == "Fregate_Low", ]$NMDS2), ] 
+
+hull_Fregate_High<-herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island_site == "Fregate_High", ][chull(herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island_site == "Fregate_High", ]$NMDS1, herb_how_bio_dat_scores_meta_rotate[herb_how_bio_dat_scores_meta_rotate$Island_site == "Fregate_High", ]$NMDS2), ] 
+
+
+hull.data <- rbind(hull_Aride, hull_Cousine, hull_Felicite,  hull_Fregate_Low, hull_Fregate_High)  #combine grp.a and grp.b
+hull.data
+
+## plot:-----
+pal=pnw_palette("Sunset2",5, type = "discrete")
+
+herb_how_bio_dat_scores_meta_rotate2<-
+  herb_how_bio_dat_scores_meta_rotate%>%
+  mutate(Island_Site = 
+           case_when(Island == "Aride" ~ "Aride",
+                     Island == "Cousine" ~ "Cousine",
+                     Island == "Felicite" ~ "Félicité",
+                     Site == "High" ~ "Fregate NE",
+                     Site == "Low" ~ "Fregate SW"))
+hull.data2<-
+   hull.data%>%
+  mutate(Island_Site = 
+           case_when(Island == "Aride" ~ "Aride",
+                     Island == "Cousine" ~ "Cousine",
+                     Island == "Felicite" ~ "Félicité",
+                     Site == "High" ~ "Fregate NE",
+                     Site == "Low" ~ "Fregate SW"))
+
+
+herb_bio_nmds_plot<-
+ggplot() + 
+  geom_point(data=herb_how_bio_dat_scores_meta_rotate2 ,aes(x=NMDS1,y=NMDS2,colour=Island_Site, fill = Island_Site), stat="identity", size=2, alpha = .25) +
+ geom_polygon(data=hull.data2,aes(x=NMDS1,y=NMDS2,fill=Island_Site,group=Island_Site, colour = Island_Site),alpha = 0.05, linetype=1, lwd = .1) + # add the 
+ geom_text(data=herb_how_bio_spp.sc.rotate ,aes(x=NMDS1,y=NMDS2 ,label=Species), alpha = .95, vjust = "outward", size = 3) +  # add the species labels -  hjust = "inward"
+      geom_point(data=herb_how_bio_spp.sc.rotate ,aes(x=NMDS1,y=NMDS2), alpha = .95, color = "black", pch = 17) +  # add the species labels -  hjust = "inward"
+  geom_segment(data = herb_how_bio_arrows.rotate , #vectors
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "gray48", alpha= .75) +
+    geom_text(data = herb_how_bio_arrows.rotate, aes(x = NMDS1, y = NMDS2, label = variable2), color = "gray48",
+               hjust = "outward", size = 3)+ #hjust = c(.75,.4),  , vjust = -1, , hjust = "inward"
+  scale_fill_manual(values = pal)+
+   scale_color_manual(values = pal)+
+  labs(color = "", fill = "")+
+  xlim(c(-.75, 1.25))+
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+        legend.position = c(.85,.25),
+        legend.box = "horizontal",
+        text = element_text(size = 8),
+        legend.background = element_blank())
+herb_bio_nmds_plot
+
+
+```
+
+
+###run NMDS -  HOW PRODUCTIVITY
+```{r}
+
+##run NMDS-----
+sey_herb_how_prod_nmds =metaMDS(herbivore_fg_how_wide_prod_sp, trymax=50, k=2, autotransform=FALSE, distance = "bray")
+
+sey_herb_how_prod_nmds$stress # stress = 0.1521687 - seems fine 
+
+
+####rotate by turf prod so can more easily interpret----
+sey_herb_how_prod_nmds.rotate<-MDSrotate(sey_herb_how_prod_nmds, herbivore_fg_how_wide$mean_turf_n15)
+sey_herb_how_prod_nmds.rotate
+
+scores(sey_herb_how_prod_nmds.rotate, display="species")
+cor(herbivore_fg_how_wide_prod_sp, scores(sey_herb_how_prod_nmds.rotate, dis="si"))
+#note: equivalent to - cor(herbivore_fg_how_wide_prod_sp,  sey_herb_how_prod_nmds.rotate$points, use = "complete.obs", method = "pearson")
+
+#                        NMDS1       NMDS2
+#Browser          0.71531739  0.007886880
+#Brusher         -0.06756424 -0.423439620
+#Cropper          0.86153331 -0.001510484
+#Excavator        0.13936161  0.331376784
+#Farmer          -0.53814001  0.308805974
+#Scraper         -0.58905167 -0.709653692
+#Sediment sucker -0.17109053 -0.685474436
+
+
+##extract site/transect scores (rotated)----
+herb_how_prod_spp.sc.rotate <- as.data.frame(scores(sey_herb_how_prod_nmds.rotate, display = "species")) %>% #Using the scores function from vegan to extract the species scores and convert
+   rownames_to_column(var="Species") # create a column of species, from the rownames of species.scores
+herb_how_prod_spp.sc.rotate
+
+herb_how_prod_site.sc.rotate <- scores(sey_herb_how_prod_nmds.rotate, display = "sites", shrink = FALSE) 
+herb_how_prod_site.sc.rotate
+
+#merge site.sc with site and transect
+herb_how_prod_dat_scores_meta_rotate<-
+  bind_cols(herbivore_fg_how_wide_prod,
+                    as_tibble(herb_how_prod_site.sc.rotate))%>%
+  unite(Island_site, Island, Site, remove = FALSE)
+
+
+#check correlations with environmental overlays: 
+sey_herb_how_prod_nmds.rotate.ord.fit<-envfit(sey_herb_how_prod_nmds.rotate~ turf   + structure +  Exposure_J_m3 + mean_turf_prod_mm_day  + mean_turf_n15  + pred_biomass_kg_ha, data = herb_how_prod_dat_scores_meta_rotate)
+sey_herb_how_prod_nmds.rotate.ord.fit 
+#                         NMDS1    NMDS2     r2 Pr(>r)    
+#turf                   0.15633 -0.98770 0.0022  0.984   
+#structure              0.99907  0.04302 0.4716  0.004 **
+#Exposure_J_m3          0.65663  0.75421 0.1395  0.295   
+#mean_turf_prod_mm_day  0.79096 -0.61187 0.3580  0.021 * 
+#mean_turf_n15          1.00000  0.00000 0.2616  0.070 . 
+#pred_biomass_kg_ha    -0.86062 -0.50924 0.0763  0.520   
+
+#strongest corrs = turf productivity (.36), turf n15 (.26), and structure (.47)
+#pretty similar to biomass, but structure more important
+
+
+##get arrows: -NEED TO MULTIPLY BY * ordiArrowMul())----
+herb_how_prod_arrows.rotate   <- 
+  as.data.frame(scores(sey_herb_how_prod_nmds.rotate.ord.fit  , display = "vectors")*ordiArrowMul(sey_herb_how_prod_nmds.rotate.ord.fit))%>%
+  rownames_to_column("variable")%>%
+  mutate(variable2 = c("turf cover", "structure", "exposure", "turf productivity", "turf nutrients", "predators"))
+
+
+#get convex hulls for polygons------
+hull_prod_Aride<-herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Aride", ][chull(herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Aride", ]$NMDS1, herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Aride", ]$NMDS2), ] 
+
+hull_prod_Cousine<-herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Cousine", ][chull(herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Cousine", ]$NMDS1, herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Cousine", ]$NMDS2), ] 
+
+hull_prod_Felicite<-herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Felicite", ][chull(herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Felicite", ]$NMDS1, herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island == "Felicite", ]$NMDS2), ] 
+
+hull_prod_Fregate_Low<-herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island_site == "Fregate_Low", ][chull(herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island_site == "Fregate_Low", ]$NMDS1, herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island_site == "Fregate_Low", ]$NMDS2), ] 
+
+hull_prod_Fregate_High<-herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island_site == "Fregate_High", ][chull(herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island_site == "Fregate_High", ]$NMDS1, herb_how_prod_dat_scores_meta_rotate[herb_how_prod_dat_scores_meta_rotate$Island_site == "Fregate_High", ]$NMDS2), ] 
+
+
+hull.prod.data <- rbind(hull_prod_Aride, hull_prod_Cousine, hull_prod_Felicite,  hull_prod_Fregate_Low, hull_prod_Fregate_High)  #combine grp.a and grp.b
+hull.prod.data
+
+## plot:-----
+#col_pal<-c("#97d8c4", "#eff2f1",  "#f4b942", "#6b9ac4", "#4059ad")
+pal=pnw_palette("Sunset2",5, type = "discrete")
+
+herb_how_prod_dat_scores_meta_rotate2<-
+  herb_how_prod_dat_scores_meta_rotate%>%
+  mutate(Island_Site = 
+           case_when(Island == "Aride" ~ "Aride",
+                     Island == "Cousine" ~ "Cousine",
+                     Island == "Felicite" ~ "Félicité",
+                     Site == "High" ~ "Fregate NE",
+                     Site == "Low" ~ "Fregate SW"))
+hull.prod.data2<-
+   hull.prod.data%>%
+  mutate(Island_Site = 
+           case_when(Island == "Aride" ~ "Aride",
+                     Island == "Cousine" ~ "Cousine",
+                     Island == "Felicite" ~ "Félicité",
+                     Site == "High" ~ "Fregate NE",
+                     Site == "Low" ~ "Fregate SW"))
+
+herb_prod_nmds_plot<-
+ggplot() + 
+  geom_point(data=herb_how_prod_dat_scores_meta_rotate2 ,aes(x=NMDS1,y=NMDS2,colour=Island_Site, fill = Island_Site), stat="identity", size=2, alpha = .25) +
+ geom_polygon(data=hull.prod.data2,aes(x=NMDS1,y=NMDS2,fill=Island_Site,group=Island_Site, colour = Island_Site),alpha = 0.05, linetype=1, lwd = .1) + # add the 
+ geom_text(data=herb_how_prod_spp.sc.rotate ,aes(x=NMDS1,y=NMDS2 ,label=Species), alpha = .95, vjust = "outward", hjust = "outward", size = 3) +  # add the species labels -  hjust = "inward"
+    geom_point(data=herb_how_prod_spp.sc.rotate ,aes(x=NMDS1,y=NMDS2), alpha = .95, color = "black", pch = 17) +  # add the species labels -  hjust = "inward"
+  geom_segment(data = herb_how_prod_arrows.rotate , #vectors
+               aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2),
+               arrow = arrow(length = unit(0.25, "cm")), colour = "gray48", alpha= .75) +
+    geom_text(data = herb_how_prod_arrows.rotate, aes(x = NMDS1, y = NMDS2, label = variable2), color = "gray48",
+               hjust = "outward", size = 3)+ #hjust = c(.75,.4),  , vjust = -1, , hjust = "inward"
+  scale_fill_manual(values = pal)+
+   scale_color_manual(values = pal)+
+  labs(color = "", fill = "")+
+  xlim(c(-.75, 1.25))+
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(),
+       # legend.position = c(.85,.25),
+       legend.position = "none",
+        legend.box = "horizontal",
+        text = element_text(size = 8),
+        legend.background = element_blank())
+
+herb_prod_nmds_plot
+
+```
+
+##combine plots and save:
+```{r}
+supp_nmds_fig<-plot_grid(herb_bio_nmds_plot, herb_prod_nmds_plot) #, labels = c("(a) Turf productivity", "(b) Turf cover"),
+               #label_size = 12, label_fontface = "plain", # hjust = -1,   vjust = 1,
+              #  scale = .95)
+supp_nmds_fig
+
+
+ggsave(filename = "../outputs/figures/supp_nmds_fig.png", 
+       plot = supp_nmds_fig,
+       width = 22, 
+      height = 10,
+      units = "cm",
+       dpi = 300)
+
+
+
+ggsave(filename = "../outputs/figures/supp_nmds_fig.pdf", 
+      plot = supp_nmds_fig,
+       width = 25, 
+       height = 10,
+      units = "cm",
+       dpi = 300)
+
+```
+

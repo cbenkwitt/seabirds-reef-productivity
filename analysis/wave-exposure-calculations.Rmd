@@ -1,0 +1,655 @@
+---
+title: "wave calculations"
+author: "CEB"
+date: '2025-01-02'
+output: html_document
+---
+
+#load packages
+```{r}
+library(tidyverse)
+library(waver)
+citation('waver')
+
+
+options(scipen = 9999)
+```
+
+#load gps data
+```{r}
+isl_gps_dat<-read.csv("../data/seychelles_gps.csv", stringsAsFactors = TRUE) 
+isl_gps_dat
+
+#add rat categories:
+sb_dat_used_gps<-
+  isl_gps_dat%>%
+  mutate(rat_status = case_when(Island == "Aride"~ "never rats",
+                                Island == "Cousine"~ "never rats",
+                                Island == "Felicite"~ "rats",
+                                Island == "Fregate"~ "rats eradicated"))
+
+sb_dat_used_gps
+
+
+#transform data to spatial object and map:
+sb_dat_used_gps_sf <- st_as_sf(sb_dat_used_gps, coords = c("Longitude", "Latitude"),  crs = 4326)
+
+
+```
+
+#load shoreline data
+```{r}
+#should just need seychelles, because all else is >650 km away
+
+my_sf <- read_sf("../data/shape_files/syc_admbnda_adm0_nbs2010.shp")
+
+```
+
+
+
+##calculate fetch
+```{r}
+#dmax is in meters based on github:
+sey_fetch_dat<-fetch_len_multi(pts = sb_dat_used_gps_sf, shoreline = my_sf, bearings = c(0, 22.5, 45,67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5), dmax = 650000, spread = 3)
+sey_fetch_dat
+
+```
+
+
+##calculate fetch
+```{r}
+#dmax is in meters based on github:
+sey_fetch_dat<-fetch_len_multi(pts = sb_dat_used_gps_sf, shoreline = my_sf, bearings = c(0, 22.5, 45,67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5), dmax = 650000, spread = 3)
+sey_fetch_dat
+
+```
+
+
+#load wind direction and speed data - combine with fetch data
+```{r}
+
+#need to have wind speed (check), then wind direction - but this will just be used for fetch in that direction, so then we will have wind speed and fetch for each site (at each wind measurement). Fetch will change based on wind direction.
+
+#fetch data from above:
+sey_fetch_dat
+
+
+#load full wind data - from Seychelles
+dir_dat<-read.csv("../data/wind_data/SEYCHELLES AIRPORT_hrly_wind_dir_2012_2022.csv")
+#NOTE: Data from 1st Jan 2012 to 31st December 2017 are from manned station and from 1st January 2018 to 31st Dec 2022 from AWOS 
+
+speed_dat<-read.csv("../data/wind_data//SEYCHELLES AIRPORT_hrly_wind_speed_2012_2022.csv")
+#note: unit = KNOTS
+
+
+#make long:
+dir_dat_long<-
+  dir_dat%>%
+  pivot_longer(names_to = "hour", cols = c(X0:X23), values_to = "direction")
+dir_dat_long
+
+speed_dat_long<-
+  speed_dat%>%
+  pivot_longer(names_to = "hour", cols = c(X0:X23), values_to = "speed_knots")
+speed_dat_long
+
+
+#combine:
+wind_dat_long<-
+  full_join(dir_dat_long, speed_dat_long)%>%
+  mutate(speed_ms = speed_knots/1.94384)
+wind_dat_long
+#perfect!
+
+#determine how to bin/match fetch direction and wind directin:
+#from Graham et al 2015:Fetch values for each of our 21 reefs was calculated in 32 compass directions (each with an angular width of 11.25) 
+sey_fetch_dat_32<-fetch_len_multi(pts = sb_dat_used_gps_sf, shoreline = my_sf, bearings = c(0, 11.25, 22.5, 33.75, 45, 56.25, 67.5, 78.75,
+                                                                                            90, 101.25, 112.5,123.75, 135, 146.25, 157.5, 168.75, 
+                                                                                            180,191.25, 202.5,213.75,  225, 236.25, 247.5, 258.75, 
+                                                                                            270, 281.25, 292.5, 303.75, 315, 326.25, 337.5, 348.75), 
+                                  dmax = 650000, spread = 3)
+sey_fetch_dat_32
+
+#write to csv because takes time to calculate:
+#write.csv(sey_fetch_dat_32, "../data/sey_fetch_dat_32.csv")
+
+
+#add site names in there, and reload:
+fetch_dat<-read.csv("../data/sey_fetch_dat_32_edit.csv")
+fetch_dat
+
+#now, for each wind direction, match it with the closest fetch direction:
+#so we did 11.25 for angular width, which means for each point, the closest wind directions are between point-5.625, and point + 5.625
+wind_dat_long%>%
+  distinct(direction)
+
+wind_dat_long_fetch<-
+  wind_dat_long%>%
+  mutate(fetch_direction = case_when((direction>354.375|direction<=5.625)~0,
+                                     (direction>5.625&direction<=16.875)~11.25,
+                                     (direction>16.875&direction<=28.125)~22.5,
+                                     (direction>28.125&direction<=39.375)~33.75,
+                                     (direction>39.375&direction<=50.625)~45,
+                                     (direction>50.625&direction<=61.875)~56.25,
+                                     (direction>61.875&direction<=73.125)~67.5,
+                                     (direction>73.125&direction<=84.375)~78.75,
+                                     (direction>84.375&direction<=95.625)~90,
+                                     (direction>95.625&direction<=106.875)~101.25,
+                                     (direction>106.875&direction<=118.125)~112.5,
+                                     (direction>118.125&direction<=129.375)~123.75,
+                                     (direction>129.375&direction<=140.625)~135,
+                                     (direction>140.625&direction<=151.875)~146.25,
+                                     (direction>151.875&direction<=163.125)~157.5,
+                                     (direction>163.125&direction<=174.375)~168.75,
+                                     (direction>174.375&direction<=185.625)~180,
+                                     (direction>185.625&direction<=196.875)~191.25,
+                                     (direction>196.875&direction<=208.125)~202.5,
+                                     (direction>208.125&direction<=219.375)~213.75,
+                                     (direction>219.375&direction<=230.625)~225,
+                                     (direction>230.625&direction<=241.875)~236.25,
+                                     (direction>241.875&direction<=253.125)~247.5,
+                                     (direction>253.125&direction<=264.375)~258.75,
+                                       (direction>264.375&direction<=275.625)~270,
+                                       (direction>275.625&direction<=286.875)~281.25,
+                                       (direction>286.875&direction<=298.125)~292.5,
+                                       (direction>298.125&direction<=309.375)~303.75,
+                                       (direction>309.375&direction<=320.625)~315,
+                                       (direction>320.625&direction<=331.875)~326.25,
+                                       (direction>331.875&direction<=343.125)~337.5,
+                                       (direction>343.125&direction<=354.375)~348.75))
+                                
+ wind_dat_long_fetch    
+#not the most efficient way, but clearly worked!
+
+```
+
+
+#okay, now for each location, need to calculate wave height for each hourly interval, based on wind speed and fetch in that direction
+```{r}
+#change fetch data to long, so we can just add columns for each site to the wind_fetch data above, merging based on direction:
+fetch_dat
+
+fetch_dat_long<-
+  fetch_dat%>%
+  pivot_longer(values_to = "fetch_length", names_to = "fetch_direction", cols = c(X0:X348.75))%>%
+  mutate(fetch_direction = gsub("X", "", fetch_direction))%>%
+  mutate(fetch_direction = as.numeric(fetch_direction))
+fetch_dat_long
+#actually, not quite what I want. need fetch_length_site for each fetch_direction
+
+fetch_dat_wide<-
+  fetch_dat_long%>%
+  pivot_wider(names_from = c(Island_Site), values_from = fetch_length, names_prefix = "fetch_length_")
+fetch_dat_wide
+
+
+
+wind_dat_long_fetch
+
+
+
+#now merge:
+wind_and_fetch_dat<-
+  left_join(wind_dat_long_fetch, fetch_dat_wide, by = join_by(fetch_direction))
+wind_and_fetch_dat
+#perfect!
+
+```
+
+
+#now calculate wave height for each wind speed and direction plus fetch length for each island: TEST
+```{r}
+#built in function:----
+wave_energy()
+#Note: Resio et al. 2003 is the same reference and looks like same formulas used in perry 2015 and refs therein...
+#then, based on supp, wave energy (J) can be calculated from the same formula as used here, except density of water here is 998 kg/m^3 versus sea water is actually 1,030 kg/m^3. Formula = 1/16* water density * gravity acceleration (9.81 m/s^2) * wave height^2 from supp. here, formula = slightly different*
+
+wind_and_fetch_dat2<-
+  wind_and_fetch_dat%>%
+  rowwise()%>%
+  mutate(Aride_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Aride_1),
+         Cousine_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Cousine_1),
+         Felicite_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Felicite_1),
+         Fregate_H_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Fregate_H),
+         Fregate_L_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Fregate_L))
+
+wind_and_fetch_dat2
+
+mean(wind_and_fetch_dat2$Aride_wave_energy, na.rm=TRUE) #0.1845651
+mean(wind_and_fetch_dat2$Cousine_wave_energy, na.rm=TRUE) #1.921391
+mean(wind_and_fetch_dat2$Felicite_wave_energy, na.rm=TRUE) #0.6596461
+mean(wind_and_fetch_dat2$Fregate_H_wave_energy, na.rm=TRUE) #1.475874
+mean(wind_and_fetch_dat2$Fregate_L_wave_energy, na.rm=TRUE) #1.760153
+
+```
+
+
+
+#now calculate wave height and wave energy for each wind speed and direction plus fetch length for each island: MANUAL BASED ON REFERENCES
+#FIRST FOR ARIDE
+```{r}
+##do one site at a time, and remove NAs:
+wind_and_fetch_dat_manual_noNA<-
+  wind_and_fetch_dat%>%
+  filter(!(is.na(speed_ms)))%>%
+  filter(!(is.na(fetch_direction)))
+wind_and_fetch_dat_manual_noNA
+
+
+wind_and_fetch_dat_manual_Aride<-
+  wind_and_fetch_dat_manual_noNA%>%
+  select(!c(fetch_length_Cousine_1, fetch_length_Felicite_1, fetch_length_Fregate_H, fetch_length_Fregate_L)) #fetch_length_Aride_1
+wind_and_fetch_dat_manual_Aride
+
+
+
+#first check if each reading is fetch-limited:----
+#1.	A pixel is classed as fetch limited for this direction if the non-dimensional fetch ξ (Resio et al. 2003) is less than a threshold value of 38,590 m:
+#(9.81*fetch_m)/(wind_speed_ms^2)
+#is that < 38590??
+wind_and_fetch_dat_manual_Aride1<-
+   wind_and_fetch_dat_manual_Aride%>%
+   rowwise()%>%
+  mutate(non_dim_fetch_Aride = (9.81*fetch_length_Aride_1)/(speed_ms^2))%>%
+  mutate(fetch_limited_Aride = case_when(non_dim_fetch_Aride<38590 ~"No",
+                                         TRUE~"Yes"))
+#note: getting "Inf" when wind speed = 0, but this will end up as 0 no matter what so doesn't matter....
+wind_and_fetch_dat_manual_Aride1
+
+##add wave height column-----
+#not fetch-limited:
+#wave height = 0.00082*(windspeed_m_s)^1.1*(fetch_m)^0.45
+
+#fetch-limited:
+#wave height = 0.034*(windspeed_m_s)^2
+
+wind_and_fetch_dat_manual_Aride2<-
+  wind_and_fetch_dat_manual_Aride1%>%
+  rowwise()%>%
+  mutate(wave_height_Aride = case_when(fetch_limited_Aride=="No"~
+                                         (0.00082*(speed_ms)^1.1*(fetch_length_Aride_1)^0.45),
+                                       fetch_limited_Aride=="Yes"~ (0.034*(speed_ms)^2)))
+
+wind_and_fetch_dat_manual_Aride2
+
+
+#add wave energy column----
+#wave energy = (1/16)*1030*9.81*wave_height^2 
+
+
+wind_and_fetch_dat_manual_Aride3<-
+  wind_and_fetch_dat_manual_Aride2%>%
+  rowwise()%>%
+  mutate(wave_energy_Aride = (1/16)*1030*9.81*wave_height_Aride^2)
+  
+wind_and_fetch_dat_manual_Aride3
+
+
+#now get long-term average, which is calculated as the geometric mean of the individual energy estimates:
+
+#limit to 10 years prior to data collection, so November 2012-November 2022:
+wind_and_fetch_dat_manual_Aride_10_year<-
+  wind_and_fetch_dat_manual_Aride3%>%
+  filter(!(yyyy == 2012 & mm <=10))%>%
+  filter(!(yyyy == 2022 & mm > 11))
+wind_and_fetch_dat_manual_Aride_10_year
+
+mean(wind_and_fetch_dat_manual_Aride_10_year$wave_energy_Aride) #87.0444
+
+
+```
+
+##REPEAT FOR OTHER SITES:
+#COUSINE
+```{r}
+
+wind_and_fetch_dat_manual_Cousine<-
+  wind_and_fetch_dat_manual_noNA%>%
+  select(!c(fetch_length_Aride_1, fetch_length_Felicite_1, fetch_length_Fregate_H, fetch_length_Fregate_L)) #fetch_length_Cousine_1
+wind_and_fetch_dat_manual_Cousine
+
+
+
+#first check if each reading is fetch-limited:----
+#1.	A pixel is classed as fetch limited for this direction if the non-dimensional fetch ξ (Resio et al. 2003) is less than a threshold value of 38,590 m:
+#(9.81*fetch_m)/(wind_speed_ms^2)
+#is that < 38590??
+wind_and_fetch_dat_manual_Cousine1<-
+   wind_and_fetch_dat_manual_Cousine%>%
+   rowwise()%>%
+  mutate(non_dim_fetch_Cousine = (9.81*fetch_length_Cousine_1)/(speed_ms^2))%>%
+  mutate(fetch_limited_Cousine = case_when(non_dim_fetch_Cousine<38590 ~"No",
+                                         TRUE~"Yes"))
+#note: getting "Inf" when wind speed = 0, but this will end up as 0 no matter what so doesn't matter....
+wind_and_fetch_dat_manual_Cousine1
+
+##add wave height column-----
+#not fetch-limited:
+#wave height = 0.00082*(windspeed_m_s)^1.1*(fetch_m)^0.45
+
+#fetch-limited:
+#wave height = 0.034*(windspeed_m_s)^2
+
+wind_and_fetch_dat_manual_Cousine2<-
+  wind_and_fetch_dat_manual_Cousine1%>%
+  rowwise()%>%
+  mutate(wave_height_Cousine = case_when(fetch_limited_Cousine=="No"~
+                                         (0.00082*(speed_ms)^1.1*(fetch_length_Cousine_1)^0.45),
+                                       fetch_limited_Cousine=="Yes"~ (0.034*(speed_ms)^2)))
+
+wind_and_fetch_dat_manual_Cousine2
+
+
+#add wave energy column----
+#wave energy = (1/16)*1030*9.81*wave_height^2 
+
+
+wind_and_fetch_dat_manual_Cousine3<-
+  wind_and_fetch_dat_manual_Cousine2%>%
+  rowwise()%>%
+  mutate(wave_energy_Cousine = (1/16)*1030*9.81*wave_height_Cousine^2)
+  
+wind_and_fetch_dat_manual_Cousine3
+
+
+#now get long-term average, which is calculated as the geometric mean of the individual energy estimates:
+
+#limit to 10 years prior to data collection, so November 2012-November 2022:
+wind_and_fetch_dat_manual_Cousine_10_year<-
+  wind_and_fetch_dat_manual_Cousine3%>%
+  filter(!(yyyy == 2012 & mm <=10))%>%
+  filter(!(yyyy == 2022 & mm > 11))
+wind_and_fetch_dat_manual_Cousine_10_year
+
+mean(wind_and_fetch_dat_manual_Cousine_10_year$wave_energy_Cousine) #483.2696
+
+
+```
+
+#FELICITE
+```{r}
+
+wind_and_fetch_dat_manual_Felicite<-
+  wind_and_fetch_dat_manual_noNA%>%
+  select(!c(fetch_length_Aride_1, fetch_length_Cousine_1, fetch_length_Fregate_H, fetch_length_Fregate_L)) #fetch_length_Felicite_1
+wind_and_fetch_dat_manual_Felicite
+
+
+
+#first check if each reading is fetch-limited:----
+#1.	A pixel is classed as fetch limited for this direction if the non-dimensional fetch ξ (Resio et al. 2003) is less than a threshold value of 38,590 m:
+#(9.81*fetch_m)/(wind_speed_ms^2)
+#is that < 38590??
+wind_and_fetch_dat_manual_Felicite1<-
+   wind_and_fetch_dat_manual_Felicite%>%
+   rowwise()%>%
+  mutate(non_dim_fetch_Felicite = (9.81*fetch_length_Felicite_1)/(speed_ms^2))%>%
+  mutate(fetch_limited_Felicite = case_when(non_dim_fetch_Felicite<38590 ~"No",
+                                         TRUE~"Yes"))
+#note: getting "Inf" when wind speed = 0, but this will end up as 0 no matter what so doesn't matter....
+wind_and_fetch_dat_manual_Felicite1
+
+##add wave height column-----
+#not fetch-limited:
+#wave height = 0.00082*(windspeed_m_s)^1.1*(fetch_m)^0.45
+
+#fetch-limited:
+#wave height = 0.034*(windspeed_m_s)^2
+
+wind_and_fetch_dat_manual_Felicite2<-
+  wind_and_fetch_dat_manual_Felicite1%>%
+  rowwise()%>%
+  mutate(wave_height_Felicite = case_when(fetch_limited_Felicite=="No"~
+                                         (0.00082*(speed_ms)^1.1*(fetch_length_Felicite_1)^0.45),
+                                       fetch_limited_Felicite=="Yes"~ (0.034*(speed_ms)^2)))
+
+wind_and_fetch_dat_manual_Felicite2
+
+
+#add wave energy column----
+#wave energy = (1/16)*1030*9.81*wave_height^2 
+
+
+wind_and_fetch_dat_manual_Felicite3<-
+  wind_and_fetch_dat_manual_Felicite2%>%
+  rowwise()%>%
+  mutate(wave_energy_Felicite = (1/16)*1030*9.81*wave_height_Felicite^2)
+  
+wind_and_fetch_dat_manual_Felicite3
+
+
+#now get long-term average, which is calculated as the geometric mean of the individual energy estimates:
+
+#limit to 10 years prior to data collection, so November 2012-November 2022:
+wind_and_fetch_dat_manual_Felicite_10_year<-
+  wind_and_fetch_dat_manual_Felicite3%>%
+  filter(!(yyyy == 2012 & mm <=10))%>%
+  filter(!(yyyy == 2022 & mm > 11))
+wind_and_fetch_dat_manual_Felicite_10_year
+
+mean(wind_and_fetch_dat_manual_Felicite_10_year$wave_energy_Felicite) #168.6095
+
+
+```
+
+
+
+
+#FREGATE H
+```{r}
+
+wind_and_fetch_dat_manual_Fregate_H<-
+  wind_and_fetch_dat_manual_noNA%>%
+  select(!c(fetch_length_Aride_1, fetch_length_Cousine_1, fetch_length_Felicite_1, fetch_length_Fregate_L)) #fetch_length_Felicite_1
+wind_and_fetch_dat_manual_Fregate_H
+
+
+
+#first check if each reading is fetch-limited:----
+#1.	A pixel is classed as fetch limited for this direction if the non-dimensional fetch ξ (Resio et al. 2003) is less than a threshold value of 38,590 m:
+#(9.81*fetch_m)/(wind_speed_ms^2)
+#is that < 38590??
+wind_and_fetch_dat_manual_Fregate_H1<-
+   wind_and_fetch_dat_manual_Fregate_H%>%
+   rowwise()%>%
+  mutate(non_dim_fetch_Fregate_H = (9.81*fetch_length_Fregate_H)/(speed_ms^2))%>%
+  mutate(fetch_limited_Fregate_H = case_when(non_dim_fetch_Fregate_H<38590 ~"No",
+                                         TRUE~"Yes"))
+#note: getting "Inf" when wind speed = 0, but this will end up as 0 no matter what so doesn't matter....
+wind_and_fetch_dat_manual_Fregate_H1
+
+##add wave height column-----
+#not fetch-limited:
+#wave height = 0.00082*(windspeed_m_s)^1.1*(fetch_m)^0.45
+
+#fetch-limited:
+#wave height = 0.034*(windspeed_m_s)^2
+
+wind_and_fetch_dat_manual_Fregate_H2<-
+  wind_and_fetch_dat_manual_Fregate_H1%>%
+  rowwise()%>%
+  mutate(wave_height_Fregate_H = case_when(fetch_limited_Fregate_H=="No"~
+                                         (0.00082*(speed_ms)^1.1*(fetch_length_Fregate_H)^0.45),
+                                       fetch_limited_Fregate_H=="Yes"~ (0.034*(speed_ms)^2)))
+
+wind_and_fetch_dat_manual_Fregate_H2
+
+
+#add wave energy column----
+#wave energy = (1/16)*1030*9.81*wave_height^2 
+
+
+wind_and_fetch_dat_manual_Fregate_H3<-
+  wind_and_fetch_dat_manual_Fregate_H2%>%
+  rowwise()%>%
+  mutate(wave_energy_Fregate_H = (1/16)*1030*9.81*wave_height_Fregate_H^2)
+  
+wind_and_fetch_dat_manual_Fregate_H3
+
+
+#now get long-term average, which is calculated as the geometric mean of the individual energy estimates:
+
+#limit to 10 years prior to data collection, so November 2012-November 2022:
+wind_and_fetch_dat_manual_Fregate_H_10_year<-
+  wind_and_fetch_dat_manual_Fregate_H3%>%
+  filter(!(yyyy == 2012 & mm <=10))%>%
+  filter(!(yyyy == 2022 & mm > 11))
+wind_and_fetch_dat_manual_Fregate_H_10_year
+
+mean(wind_and_fetch_dat_manual_Fregate_H_10_year$wave_energy_Fregate_H) #394.161
+
+
+```
+
+
+
+
+
+
+
+#FREGATE L
+```{r}
+
+wind_and_fetch_dat_manual_Fregate_L<-
+  wind_and_fetch_dat_manual_noNA%>%
+  select(!c(fetch_length_Aride_1, fetch_length_Cousine_1, fetch_length_Felicite_1, fetch_length_Fregate_H)) #fetch_length_Felicite_1
+wind_and_fetch_dat_manual_Fregate_L
+
+
+
+#first check if each reading is fetch-limited:----
+#1.	A pixel is classed as fetch limited for this direction if the non-dimensional fetch ξ (Resio et al. 2003) is less than a threshold value of 38,590 m:
+#(9.81*fetch_m)/(wind_speed_ms^2)
+#is that < 38590??
+wind_and_fetch_dat_manual_Fregate_L1<-
+   wind_and_fetch_dat_manual_Fregate_L%>%
+   rowwise()%>%
+  mutate(non_dim_fetch_Fregate_L = (9.81*fetch_length_Fregate_L)/(speed_ms^2))%>%
+  mutate(fetch_limited_Fregate_L = case_when(non_dim_fetch_Fregate_L<38590 ~"No",
+                                         TRUE~"Yes"))
+#note: getting "Inf" when wind speed = 0, but this will end up as 0 no matter what so doesn't matter....
+wind_and_fetch_dat_manual_Fregate_L1
+
+##add wave height column-----
+#not fetch-limited:
+#wave height = 0.00082*(windspeed_m_s)^1.1*(fetch_m)^0.45
+
+#fetch-limited:
+#wave height = 0.034*(windspeed_m_s)^2
+
+wind_and_fetch_dat_manual_Fregate_L2<-
+  wind_and_fetch_dat_manual_Fregate_L1%>%
+  rowwise()%>%
+  mutate(wave_height_Fregate_L = case_when(fetch_limited_Fregate_L=="No"~
+                                         (0.00082*(speed_ms)^1.1*(fetch_length_Fregate_L)^0.45),
+                                       fetch_limited_Fregate_L=="Yes"~ (0.034*(speed_ms)^2)))
+
+wind_and_fetch_dat_manual_Fregate_L2
+
+
+#add wave energy column----
+#wave energy = (1/16)*1030*9.81*wave_height^2 
+
+
+wind_and_fetch_dat_manual_Fregate_L3<-
+  wind_and_fetch_dat_manual_Fregate_L2%>%
+  rowwise()%>%
+  mutate(wave_energy_Fregate_L = (1/16)*1030*9.81*wave_height_Fregate_L^2)
+  
+wind_and_fetch_dat_manual_Fregate_L3
+
+
+#now get long-term average, which is calculated as the geometric mean of the individual energy estimates:
+
+#limit to 10 years prior to data collection, so November 2012-November 2022:
+wind_and_fetch_dat_manual_Fregate_L_10_year<-
+  wind_and_fetch_dat_manual_Fregate_L3%>%
+  filter(!(yyyy == 2012 & mm <=10))%>%
+  filter(!(yyyy == 2022 & mm > 11))
+wind_and_fetch_dat_manual_Fregate_L_10_year
+
+mean(wind_and_fetch_dat_manual_Fregate_L_10_year$wave_energy_Fregate_L) #448.9753
+range(wind_and_fetch_dat_manual_Fregate_L_10_year$wave_energy_Fregate_L) #0.00 25605.34
+
+
+```
+
+
+
+##calculate 10-year average, and average for our survey month (Nov 2022)
+```{r}
+
+#merge data back together:
+all_wind_fetch_manual_data<-
+  left_join(wind_and_fetch_dat_manual_Fregate_H3, wind_and_fetch_dat_manual_Fregate_L3)%>%
+  left_join(wind_and_fetch_dat_manual_Felicite3)%>%
+    left_join(wind_and_fetch_dat_manual_Cousine3)%>%
+  left_join(wind_and_fetch_dat_manual_Aride3)
+
+
+#study period: 
+all_wind_fetch_manual_data_filtered_nov<-
+  all_wind_fetch_manual_data%>%
+  filter((yyyy == 2022 & mm == 11))
+
+mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Fregate_L) #133.6945
+mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Fregate_H) #112.8798
+mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Cousine) #119.615
+mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Aride) #55.55186
+mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Felicite) #39.12668
+
+#10-year average
+all_wind_fetch_manual_data_10year<-
+  all_wind_fetch_manual_data%>%
+ filter(!(yyyy == 2012 & mm <=10))%>%
+  filter(!(yyyy == 2022 & mm > 11))
+
+mean(all_wind_fetch_manual_data_10year$wave_energy_Aride) #87.0444
+mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_L) #448.9753
+mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_H) #394.161
+mean(all_wind_fetch_manual_data_10year$wave_energy_Felicite) #168.6095
+mean(all_wind_fetch_manual_data_10year$wave_energy_Cousine) #483.2696
+
+
+```
+
+
+##compare to wave_energy function calculations above:
+```{r}
+
+#wave_energy calculations:
+wind_and_fetch_dat2_10year<-
+  wind_and_fetch_dat2%>%
+   filter(!(yyyy == 2012 & mm <=10))%>%
+  filter(!(yyyy == 2022 & mm > 11))
+
+mean(wind_and_fetch_dat2_10year$Aride_wave_energy, na.rm=TRUE) #0.1841504
+mean(wind_and_fetch_dat2_10year$Fregate_L_wave_energy, na.rm=TRUE) #1.553321
+mean(wind_and_fetch_dat2_10year$Fregate_H_wave_energy, na.rm=TRUE) #1.386125
+mean(wind_and_fetch_dat2_10year$Felicite_wave_energy, na.rm=TRUE) #0.5233581
+mean(wind_and_fetch_dat2_10year$Cousine_wave_energy, na.rm=TRUE) #1.708589
+
+#from help for wave_energy function: returns Wave energy flux, in kW/m.[wave energy flux (power per meter of wave crest)]
+
+#manual calculations:
+all_wind_fetch_manual_data_10year<-
+  all_wind_fetch_manual_data%>%
+ filter(!(yyyy == 2012 & mm <=10))%>%
+  filter(!(yyyy == 2022 & mm > 11))
+
+mean(all_wind_fetch_manual_data_10year$wave_energy_Aride) #87.0444
+mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_L) #448.9753
+mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_H) #394.161
+mean(all_wind_fetch_manual_data_10year$wave_energy_Felicite) #168.6095
+mean(all_wind_fetch_manual_data_10year$wave_energy_Cousine) #483.2696
+
+#from reference for formula: average wave exposure (J m−3)
+
+#obviously different values, because different units...but proportional difference is the same??:
+(448.9753-87.0444)/((87.0444+ 448.9753)/2)  #1.350439
+(1.553321-0.1841504)/((0.1841504+ 1.553321)/2) #1.57605
+#close % differences at least as  atest for Aride versus Fregate L
+
+
+```
+

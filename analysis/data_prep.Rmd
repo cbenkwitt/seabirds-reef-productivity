@@ -1,0 +1,277 @@
+---
+title: "all_data_prep"
+author: "CEB"
+date: '2025-03-19'
+output: html_document
+---
+
+Load raw data, and combine for all analyses:
+
+#packages
+```{r}
+library(tidyverse)
+```
+
+
+#for isotope analyses:
+```{r}
+
+#load data:----
+#seabird data (site-level):
+sey_sb_dat<-read.csv("../data/seychelles_seabird_biomass.csv", stringsAsFactors = TRUE) 
+str(sey_sb_dat)
+
+#isotope data
+iso_dat<-read.csv("../data/seychelles_isotope_data.csv") 
+str(iso_dat)
+
+#exposure data (relevant for turf):
+site_dat <- read.csv("../data/seychelles_site_exposure.csv")
+
+
+#combine:----
+sey_iso_sb_dat<-
+  left_join(dplyr::select(sey_sb_dat, c("Island", "Side", "Site", "seabird.biomass.total")),
+                          iso_dat, by = c("Island", "Site"))
+sey_iso_sb_dat
+
+sey_iso_sb_dat_site<-
+  right_join(site_dat, sey_iso_sb_dat, by = c("Island", "Site"))
+sey_iso_sb_dat_site
+
+#check:
+nrow(sey_iso_sb_dat_site)
+nrow(iso_dat)
+#matches!
+
+#create seperate data for turf and leaves----
+leaf_n15_dat<-
+  sey_iso_sb_dat_site%>%
+  filter(Sample.Type == "Leaves")%>%
+  select(-Turf.cage.number)
+  
+turf_n15_dat<-
+  sey_iso_sb_dat_site%>%
+  filter(Sample.Type == "Turf algae")
+
+
+#save:----
+#write.csv(leaf_n15_dat, "../data/seychelles_leaf_n15_dat.csv")
+#write.csv(turf_n15_dat, "../data/seychelles_turf_n15_dat.csv")
+
+
+
+```
+
+
+#for turf productivity:
+```{r}
+#turf pp----
+turf_pp<-read.csv("../data/seychelles_turf_primary_productivity.csv") 
+str(turf_pp)
+
+
+##turf isotopes----
+turf_dat<-read.csv("../data/seychelles_isotope_data.csv")%>% 
+   filter(Sample.Type == "Turf algae")
+str(turf_dat)
+
+
+#Average by cage, then calculate growth----
+pp_cage<-
+  turf_pp%>%
+  group_by(Island, Site, Cage, Number.Hours)%>%
+  summarize(Average_turf_height_initial = mean(Initial.Height, na.rm = TRUE),
+            Average_turf_height_final = mean(Final.Height, na.rm = TRUE))%>%
+  mutate(
+            Turf_growth_total = Average_turf_height_final-Average_turf_height_initial,
+            Turf_growth_per_hour = Turf_growth_total/Number.Hours,
+            Turf_growth_mm_per_day = Turf_growth_per_hour*24)%>%
+  ungroup()
+pp_cage
+
+
+#adjust column names for combining----
+turf_dat_for_comb<-
+  turf_dat%>%
+  rename(Cage = Turf.cage.number, Turf_N15 = N15)%>%
+  select(-c(Sample.Type, Species, Date))
+
+
+###combine data----
+str(pp_cage)
+str(turf_dat_for_comb)
+
+
+turf_pp_cage_iso_dat<-left_join(pp_cage, turf_dat_for_comb,
+               by = c("Island", "Site", "Cage"))
+
+turf_pp_cage_iso_dat
+
+
+#check sample sizes per site:----
+turf_pp_cage_iso_dat%>%
+  group_by(Island, Site)%>%
+  summarize(N_cage = length(Turf_growth_mm_per_day))
+#Aride	Site 1	10		
+#Cousine	Site 1	9	-  because one was completely bare when returned to remeasure (invert grazing?)
+#Felicite	Site 1	9	-  because one was completely bare when returned to remeasure (invert grazing?)
+#Fregate	High	10		
+#Fregate	Low	8	- because 2 cages missing when returned to remeasure
+
+
+#add other variables:
+#exposure data:
+site_dat <- read.csv("../data/seychelles_site_exposure.csv")
+
+
+#herbivore info (from productivity calculations file)----
+herbivore_dat<-read.csv("../data/seychelles_herbivore_biomass_productivity_by_transect.csv")
+
+#predator data:
+pred_dat<-read.csv("../data/seychelles_predator_biomass_by_transect.csv")
+
+#benthic data:
+benthic_dat<-read.csv("../data/seychelles_benthic_structure_data.csv")
+#calculate total grazeable cover:
+benthic_dat2<-
+  benthic_dat%>%
+  rowwise()%>%
+  mutate(other_grazeable = sum(pavement, CCA, dead),
+         other_orgs = sum(soft_coral, sea_cucumber, sponge),
+         sand_rubble = sum(sand, rubble),
+         available_sub = sum(pavement, dead))
+benthic_dat2
+
+#limit to likely categories to use:
+benthic_dat_red<-
+  benthic_dat2%>%
+  select(Island, Site, Transect, structure, hard_coral, macroalgae, pavement, rubble, turf, CCA, dead, sand, other_grazeable, other_orgs, sand_rubble, available_sub)
+
+
+#all of these need to be aggregated to site level:
+herbivore_dat_site<-
+  herbivore_dat%>%
+    group_by(Island, Site)%>%
+  summarize(mean_herb_bio = mean(herb_biomass_kg_ha, na.rm = TRUE),
+           mean_herb_prod = mean(herb_productivity_kg_ha_day, na.rm = TRUE))
+
+pred_dat_site<-
+  pred_dat%>%
+    group_by(Island, Site)%>%
+  summarize(mean_pred_bio = mean(pred_biomass_kg_ha, na.rm = TRUE))
+
+benthic_dat_site<-
+  benthic_dat_red%>%
+    group_by(Island, Site)%>%
+  summarize(mean_structure = mean(structure, na.rm = TRUE),
+           coral_cover = mean(hard_coral, na.rm = TRUE),
+           turf_cover = mean(turf, na.rm = TRUE),
+           macro_cover = mean(macroalgae, na.rm = TRUE),
+           pave_cover = mean(pavement, na.rm = TRUE),
+           cca_cover = mean(CCA, na.rm = TRUE),
+           dead_cover = mean(dead, na.rm = TRUE),
+           sand_cover = mean(sand, na.rm = TRUE),
+           other_graze_cover = mean(other_grazeable, na.rm = TRUE),
+           sand_rub_cover = mean(sand_rubble, na.rm = TRUE),
+           other_org_cover = mean(other_orgs, na.rm = TRUE))
+
+
+#combine---
+#first all site level data
+all_site_dat<-left_join(site_dat, herbivore_dat_site, 
+                                    by =c("Island", "Site"))%>%
+  left_join(pred_dat_site,     by =c("Island", "Site"))%>%
+  left_join(benthic_dat_site,     by =c("Island", "Site"))
+all_site_dat
+
+#now with turf
+turf_pp_cage_all_dat<-left_join(turf_pp_cage_iso_dat, all_site_dat,
+                                    by =c("Island", "Site"))
+turf_pp_cage_all_dat
+
+
+
+#write csv for other analyses-----
+#write.csv(turf_pp_cage_all_dat, "../data/seychelles_turf_pp_by_cage_dat.csv")
+
+
+
+```
+
+
+
+#for turf cover, herbivore biomass and productivity:
+```{r}
+
+#turf growth, isotopes (from above):
+turf_pp_cage_all_dat
+
+#aggregate by site:
+turf_pp_cage_all_dat_site<-
+  turf_pp_cage_all_dat%>%
+    group_by(Island, Site)%>%
+  summarize(mean_turf_prod_mm_day = mean(Turf_growth_mm_per_day, na.rm = TRUE),
+           mean_turf_n15 = mean(Turf_N15, na.rm = TRUE),
+           mean_turf_height = mean(Average_turf_height_initial, na.rm = TRUE))
+turf_pp_cage_all_dat_site
+
+
+#herbivore info (from above):
+herbivore_dat
+
+#exposure data (from above):
+site_dat
+
+
+#predator data: (from above):
+pred_dat
+
+#benthic data (from above):
+benthic_dat_red
+
+#combine---
+#first all site level data
+turf_site_dat_c<-left_join(site_dat, turf_pp_cage_all_dat_site, 
+                                    by =c("Island", "Site"))
+turf_site_dat_c
+
+#now combine all transect level data:
+trans_all_dat<-left_join(herbivore_dat, pred_dat,
+                                    by =c("Island", "Site", "Transect"))%>%
+  left_join(benthic_dat_red,
+                                    by =c("Island", "Site", "Transect"))
+trans_all_dat
+
+
+#combine together:
+trans_site_all_dat<-left_join(trans_all_dat, turf_site_dat_c,  by =c("Island", "Site"))
+trans_site_all_dat
+
+#write.csv(trans_site_all_dat, "../data/seychelles_uvc_dat.csv")
+
+
+```
+
+
+#and save one for site-level data:
+```{r}
+all_site_dat
+turf_pp_cage_all_dat_site
+
+leaf_n15_dat_site<-
+  leaf_n15_dat%>%
+    group_by(Island, Site, seabird.biomass.total)%>%
+  summarize(mean_leaf_n15 = mean(N15, na.rm = TRUE))
+
+leaf_n15_dat_site
+
+all_site_dat2<-left_join(all_site_dat, turf_pp_cage_all_dat_site, by = join_by(Island, Site))%>%
+  left_join(leaf_n15_dat_site, by = join_by(Island, Site))
+all_site_dat2
+
+#write.csv(all_site_dat2, "../data/seychelles_all_site_level_dat.csv")
+
+```
+
+

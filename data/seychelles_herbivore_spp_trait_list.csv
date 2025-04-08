@@ -1,35 +1,35 @@
-﻿Family,Species,FG.fine,Diet,Position,MaxSizeTL,sstmean,Method
-Acanthuridae,Acanthurus leucosternon,Cropper,HerDet,BtPlDw,54,28,Otolth
-Acanthuridae,Acanthurus lineatus,Cropper,HerDet,BtPlDw,38,28,Otolth
-Acanthuridae,Acanthurus nigricauda,Cropper,HerDet,BtPlDw,40,28,Otolth
-Acanthuridae,Acanthurus nigrofuscus,Cropper,HerDet,BtPlDw,21,28,Otolth
-Acanthuridae,Acanthurus tennentii,Cropper,HerDet,BtPlDw,31,28,Otolth
-Acanthuridae,Acanthurus triostegus,Cropper,HerDet,BtPlDw,27,28,Otolth
-Acanthuridae,Acanthurus xanthopteus,Cropper,HerDet,BtPlDw,70,28,Otolth
-Scaridae,Calotomus carolinus,Browser,HerMac,BtPlDw,54,28,Otolth
-Scaridae,Chlorurus atrilunula,Excavator,HerDet,BtPlDw,38,28,Otolth
-Scaridae,Chlorurus sordidus,Excavator,HerDet,BtPlDw,40,28,Otolth
-Scaridae,Chlorurus strongylocephalus,Excavator,HerDet,BtPlDw,70,28,Otolth
-Acanthuridae,Ctenochaetus binotatus,Brusher,HerDet,BtPlDw,22,28,Otolth
-Acanthuridae,Ctenochaetus striatus,Brusher,HerDet,BtPlDw,26,28,Otolth
-Acanthuridae,Ctenochaetus truncatus,Brusher,HerDet,BtPlDw,16,28,Otolth
-Kyphosidae,Kyphosus cinerascens,Browser,HerMac,PelgDw,50,28,Otolth
-Acanthuridae,Naso brachycentron,Browser,HerMac,BtPlDw,105,28,Otolth
-Acanthuridae,Naso elegans,Browser,HerMac,BnthAs,45,28,Otolth
-Pomacentridae,Plectroglyphidodon lacrymatus,Farmer,HerDet,BnthDw,10,28,Otolth
-Scaridae,Scarus caudofasciatus,Scraper,HerDet,BtPlDw,50,28,Otolth
-Scaridae,Scarus falcipinnis,Scraper,HerDet,BtPlDw,60,28,Otolth
-Scaridae,Scarus frenatus,Scraper,HerDet,BtPlDw,47,28,Otolth
-Scaridae,Scarus ghobban,Scraper,HerDet,BtPlDw,75,28,Otolth
-Scaridae,Scarus niger,Scraper,HerDet,BtPlDw,40,28,Otolth
-Scaridae,Scarus prasiognathus,Scraper,HerDet,BtPlDw,70,28,Otolth
-Scaridae,Scarus psittacus,Scraper,HerDet,BtPlDw,35,28,Otolth
-Scaridae,Scarus rubroviolaceus,Scraper,HerDet,BtPlDw,70,28,Otolth
-Scaridae,Scarus tricolor,Scraper,HerDet,BtPlDw,37,28,Otolth
-Scaridae,Scarus viridifucatus,Scraper,HerDet,BtPlDw,45,28,Otolth
-Siganidae,Siganus argenteus,Browser,HerMac,BtPlDw,40,28,Otolth
-Siganidae,Siganus stellatus,Cropper,HerDet,BnthDw,40,28,Otolth
-Siganidae,Siganus sutor,Browser,HerMac,BnthDw,50,28,Otolth
-Pomacentridae,Stegastes nigricans,Farmer,HerDet,BnthDw,14,28,Otolth
-Acanthuridae,Zebrasoma desjardinii,Cropper,HerDet,BtPlDw,40,28,Otolth
-Acanthuridae,Zebrasoma scopas,Cropper,HerDet,BtPlDw,25,28,Otolth
+﻿Family,Species,FG.fine,Diet,Position,MaxSizeTL,sstmean,Method,FG.how,FG.what
+Acanthuridae,Acanthurus leucosternon,Cropper,HerDet,BtPlDw,54,28,Otolth,Cropper,Turf algae
+Acanthuridae,Acanthurus lineatus,Cropper,HerDet,BtPlDw,38,28,Otolth,Cropper,Turf algae
+Acanthuridae,Acanthurus nigricauda,Cropper,HerDet,BtPlDw,40,28,Otolth,Sediment sucker,Detritus and sediment
+Acanthuridae,Acanthurus nigrofuscus,Cropper,HerDet,BtPlDw,21,28,Otolth,Cropper,Turf algae
+Acanthuridae,Acanthurus tennentii,Cropper,HerDet,BtPlDw,31,28,Otolth,Sediment sucker,Detritus and sediment
+Acanthuridae,Acanthurus triostegus,Cropper,HerDet,BtPlDw,27,28,Otolth,Cropper,Turf algae
+Acanthuridae,Acanthurus xanthopteus,Cropper,HerDet,BtPlDw,70,28,Otolth,Sediment sucker,Detritus and sediment
+Scaridae,Calotomus carolinus,Browser,HerMac,BtPlDw,54,28,Otolth,Browser,Macroalgae
+Scaridae,Chlorurus atrilunula,Excavator,HerDet,BtPlDw,38,28,Otolth,Excavator,Microscopic cyanobacteria
+Scaridae,Chlorurus sordidus,Excavator,HerDet,BtPlDw,40,28,Otolth,Excavator,Microscopic cyanobacteria
+Scaridae,Chlorurus strongylocephalus,Excavator,HerDet,BtPlDw,70,28,Otolth,Excavator,Microscopic cyanobacteria
+Acanthuridae,Ctenochaetus binotatus,Brusher,HerDet,BtPlDw,22,28,Otolth,Brusher,Detritus and sediment
+Acanthuridae,Ctenochaetus striatus,Brusher,HerDet,BtPlDw,26,28,Otolth,Brusher,Detritus and sediment
+Acanthuridae,Ctenochaetus truncatus,Brusher,HerDet,BtPlDw,16,28,Otolth,Brusher,Detritus and sediment
+Kyphosidae,Kyphosus cinerascens,Browser,HerMac,PelgDw,50,28,Otolth,Browser,Macroalgae
+Acanthuridae,Naso brachycentron,Browser,HerMac,BtPlDw,105,28,Otolth,Browser,Macroalgae
+Acanthuridae,Naso elegans,Browser,HerMac,BnthAs,45,28,Otolth,Browser,Macroalgae
+Pomacentridae,Plectroglyphidodon lacrymatus,Farmer,HerDet,BnthDw,10,28,Otolth,Farmer,Turf algae (within defended territories)
+Scaridae,Scarus caudofasciatus,Scraper,HerDet,BtPlDw,50,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus falcipinnis,Scraper,HerDet,BtPlDw,60,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus frenatus,Scraper,HerDet,BtPlDw,47,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus ghobban,Scraper,HerDet,BtPlDw,75,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus niger,Scraper,HerDet,BtPlDw,40,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus prasiognathus,Scraper,HerDet,BtPlDw,70,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus psittacus,Scraper,HerDet,BtPlDw,35,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus rubroviolaceus,Scraper,HerDet,BtPlDw,70,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus tricolor,Scraper,HerDet,BtPlDw,37,28,Otolth,Scraper,Microscopic cyanobacteria
+Scaridae,Scarus viridifucatus,Scraper,HerDet,BtPlDw,45,28,Otolth,Scraper,Microscopic cyanobacteria
+Siganidae,Siganus argenteus,Browser,HerMac,BtPlDw,40,28,Otolth,Browser,Macroalgae
+Siganidae,Siganus stellatus,Cropper,HerDet,BnthDw,40,28,Otolth,Cropper,Turf algae
+Siganidae,Siganus sutor,Browser,HerMac,BnthDw,50,28,Otolth,Browser,Macroalgae
+Pomacentridae,Stegastes nigricans,Farmer,HerDet,BnthDw,14,28,Otolth,Farmer,Turf algae (within defended territories)
+Acanthuridae,Zebrasoma desjardinii,Cropper,HerDet,BtPlDw,40,28,Otolth,Concealed cropper,Turf algae
+Acanthuridae,Zebrasoma scopas,Cropper,HerDet,BtPlDw,25,28,Otolth,Concealed cropper,Turf algae

@@ -1,121 +1,161 @@
-Island,Site,Transect,FG.fine,biomass_kg_ha,productivity_kg_ha_day
-Aride,Site 1,1,Browser,0,0
-Aride,Site 1,1,Brusher,37.1,0.051377939
-Aride,Site 1,1,Cropper,939.8,0.901357937
-Aride,Site 1,1,Excavator,114.9,0.000369475
-Aride,Site 1,1,Farmer,0,0
-Aride,Site 1,1,Scraper,293.8,0.197908531
-Aride,Site 1,2,Browser,369,0.150454987
-Aride,Site 1,2,Brusher,20,0.059223094
-Aride,Site 1,2,Cropper,141.8,0.068167289
-Aride,Site 1,2,Excavator,59.7,0.045558512
-Aride,Site 1,2,Farmer,17.2,0.014808571
-Aride,Site 1,2,Scraper,289.4,0.182554768
-Aride,Site 1,3,Browser,0,0
-Aride,Site 1,3,Brusher,9,0.028610464
-Aride,Site 1,3,Cropper,7.7,0.013964006
-Aride,Site 1,3,Excavator,0,0
-Aride,Site 1,3,Farmer,48,0.040769007
-Aride,Site 1,3,Scraper,584.1,0.223071877
-Aride,Site 1,4,Browser,260.4,0.082043693
-Aride,Site 1,4,Brusher,0,0
-Aride,Site 1,4,Cropper,81.2,0.053766765
-Aride,Site 1,4,Excavator,88.7,0.017158241
-Aride,Site 1,4,Farmer,9.2,0.004079678
-Aride,Site 1,4,Scraper,290.3,0.135459839
-Cousine,Site 1,1,Browser,0,0
-Cousine,Site 1,1,Brusher,18.9,0.01948545
-Cousine,Site 1,1,Cropper,0,0
-Cousine,Site 1,1,Excavator,203.8,0.091253698
-Cousine,Site 1,1,Farmer,38.2,0.062782837
-Cousine,Site 1,1,Scraper,376.7,0.128653638
-Cousine,Site 1,2,Browser,171.7,0.030910184
-Cousine,Site 1,2,Brusher,17.1,0.00743772
-Cousine,Site 1,2,Cropper,46.4,0.065552224
-Cousine,Site 1,2,Excavator,340.2,0.136697284
-Cousine,Site 1,2,Farmer,30.1,0.03491182
-Cousine,Site 1,2,Scraper,319.1,0.127984555
-Cousine,Site 1,3,Browser,0,0
-Cousine,Site 1,3,Brusher,34.3,0.05833487
-Cousine,Site 1,3,Cropper,62.5,0.042964004
-Cousine,Site 1,3,Excavator,260.4,0.0764666
-Cousine,Site 1,3,Farmer,21.5,0.023229555
-Cousine,Site 1,3,Scraper,453.2,0.18806824
-Cousine,Site 1,4,Browser,0,0
-Cousine,Site 1,4,Brusher,0,0
-Cousine,Site 1,4,Cropper,7.7,0.009888192
-Cousine,Site 1,4,Excavator,32.9,0.092724956
-Cousine,Site 1,4,Farmer,24.3,0.025632921
-Cousine,Site 1,4,Scraper,102.2,0.130666181
-Felicite,Site 1,1,Browser,0,0
-Felicite,Site 1,1,Brusher,22.8,0.037919478
-Felicite,Site 1,1,Cropper,17.2,0.035433417
-Felicite,Site 1,1,Excavator,104.2,0.076147873
-Felicite,Site 1,1,Farmer,29.2,0.035052874
-Felicite,Site 1,1,Scraper,0,0
-Felicite,Site 1,2,Browser,0,0
-Felicite,Site 1,2,Brusher,5,0.014805774
-Felicite,Site 1,2,Cropper,51.6,0.083203632
-Felicite,Site 1,2,Excavator,24.4,0.041833279
-Felicite,Site 1,2,Farmer,30.8,0.031704465
-Felicite,Site 1,2,Scraper,30,0.077940712
-Felicite,Site 1,3,Browser,0,0
-Felicite,Site 1,3,Brusher,0,0
-Felicite,Site 1,3,Cropper,19.4,0.0363885
-Felicite,Site 1,3,Excavator,34.8,0.025360429
-Felicite,Site 1,3,Farmer,22.2,0.02923186
-Felicite,Site 1,3,Scraper,13.6,0.039155328
-Felicite,Site 1,4,Browser,0,0
-Felicite,Site 1,4,Brusher,12.1,0.041252946
-Felicite,Site 1,4,Cropper,47.8,0.112201476
-Felicite,Site 1,4,Excavator,11.9,0.031431862
-Felicite,Site 1,4,Farmer,19.5,0.022587483
-Felicite,Site 1,4,Scraper,140.1,0.179818823
-Fregate,High,1,Browser,79.8,0.06523691
-Fregate,High,1,Brusher,1.8,0.002373634
-Fregate,High,1,Cropper,59.5,0.061252222
-Fregate,High,1,Excavator,91,0.025430977
-Fregate,High,1,Farmer,23.6,0.014052574
-Fregate,High,1,Scraper,62.1,0.05119504
-Fregate,High,2,Browser,90,0.066906104
-Fregate,High,2,Brusher,6.2,0.004578971
-Fregate,High,2,Cropper,65.4,0.093221581
-Fregate,High,2,Excavator,212.6,0.056144277
-Fregate,High,2,Farmer,19.2,0.014009991
-Fregate,High,2,Scraper,125.5,0.061891827
-Fregate,High,3,Browser,314.2,0.33963348
-Fregate,High,3,Brusher,9.3,0.006868456
-Fregate,High,3,Cropper,231.9,0.371175392
-Fregate,High,3,Excavator,282,0.24621473
-Fregate,High,3,Farmer,29.1,0.023848449
-Fregate,High,3,Scraper,106.3,0.034455318
-Fregate,High,4,Browser,0,0
-Fregate,High,4,Brusher,17.2,0.046019509
-Fregate,High,4,Cropper,62.7,0.047882063
-Fregate,High,4,Excavator,188.5,0.125396053
-Fregate,High,4,Farmer,6.2,0.008525051
-Fregate,High,4,Scraper,56.6,0.048227729
-Fregate,Low,1,Browser,40.8,0.057699298
-Fregate,Low,1,Brusher,84.4,0.054732662
-Fregate,Low,1,Cropper,161.1,0.201939826
-Fregate,Low,1,Excavator,0,0
-Fregate,Low,1,Farmer,0,0
-Fregate,Low,1,Scraper,17.7,0.033267456
-Fregate,Low,2,Browser,0,0
-Fregate,Low,2,Brusher,49.4,0.065851667
-Fregate,Low,2,Cropper,159.5,0.234944196
-Fregate,Low,2,Excavator,0,0
-Fregate,Low,2,Farmer,0,0
-Fregate,Low,2,Scraper,93.2,0.101456812
-Fregate,Low,3,Browser,142.8,0.201947542
-Fregate,Low,3,Brusher,18.2,0.006772877
-Fregate,Low,3,Cropper,58.9,0.101653978
-Fregate,Low,3,Excavator,93.9,0.047045916
-Fregate,Low,3,Farmer,0,0
-Fregate,Low,3,Scraper,65.7,0.019665061
-Fregate,Low,4,Browser,0,0
-Fregate,Low,4,Brusher,49.1,0.015889232
-Fregate,Low,4,Cropper,51.9,0.091371613
-Fregate,Low,4,Excavator,94.6,0.089642567
-Fregate,Low,4,Farmer,14.4,0.010507493
-Fregate,Low,4,Scraper,68.3,0.03671775
+Island,Site,Transect,FG.how,FG.what,biomass_kg_ha,productivity_kg_ha_day
+Aride,Site 1,1,Browser,Macroalgae,0,0
+Aride,Site 1,1,Brusher,Detritus and sediment,37.1,0.051377939
+Aride,Site 1,1,Concealed cropper,Turf algae,5.2,0.00861132
+Aride,Site 1,1,Cropper,Turf algae,0,0
+Aride,Site 1,1,Excavator,Microscopic cyanobacteria,114.9,0.000369475
+Aride,Site 1,1,Farmer,Turf algae (within defended territories),0,0
+Aride,Site 1,1,Scraper,Microscopic cyanobacteria,293.8,0.197908531
+Aride,Site 1,1,Sediment sucker,Detritus and sediment,934.6,0.892746617
+Aride,Site 1,2,Browser,Macroalgae,369,0.150454987
+Aride,Site 1,2,Brusher,Detritus and sediment,20,0.059223094
+Aride,Site 1,2,Concealed cropper,Turf algae,5.2,0.00861132
+Aride,Site 1,2,Cropper,Turf algae,136.6,0.059555969
+Aride,Site 1,2,Excavator,Microscopic cyanobacteria,59.7,0.045558512
+Aride,Site 1,2,Farmer,Turf algae (within defended territories),17.2,0.014808571
+Aride,Site 1,2,Scraper,Microscopic cyanobacteria,289.4,0.182554768
+Aride,Site 1,2,Sediment sucker,Detritus and sediment,0,0
+Aride,Site 1,3,Browser,Macroalgae,0,0
+Aride,Site 1,3,Brusher,Detritus and sediment,9,0.028610464
+Aride,Site 1,3,Concealed cropper,Turf algae,0,0
+Aride,Site 1,3,Cropper,Turf algae,7.7,0.013964006
+Aride,Site 1,3,Excavator,Microscopic cyanobacteria,0,0
+Aride,Site 1,3,Farmer,Turf algae (within defended territories),48,0.040769007
+Aride,Site 1,3,Scraper,Microscopic cyanobacteria,584.1,0.223071877
+Aride,Site 1,3,Sediment sucker,Detritus and sediment,0,0
+Aride,Site 1,4,Browser,Macroalgae,260.4,0.082043693
+Aride,Site 1,4,Brusher,Detritus and sediment,0,0
+Aride,Site 1,4,Concealed cropper,Turf algae,0,0
+Aride,Site 1,4,Cropper,Turf algae,3.2,0.006600973
+Aride,Site 1,4,Excavator,Microscopic cyanobacteria,88.7,0.017158241
+Aride,Site 1,4,Farmer,Turf algae (within defended territories),9.2,0.004079678
+Aride,Site 1,4,Scraper,Microscopic cyanobacteria,290.3,0.135459839
+Aride,Site 1,4,Sediment sucker,Detritus and sediment,78,0.047165792
+Cousine,Site 1,1,Browser,Macroalgae,0,0
+Cousine,Site 1,1,Brusher,Detritus and sediment,18.9,0.01948545
+Cousine,Site 1,1,Concealed cropper,Turf algae,0,0
+Cousine,Site 1,1,Cropper,Turf algae,0,0
+Cousine,Site 1,1,Excavator,Microscopic cyanobacteria,203.8,0.091253698
+Cousine,Site 1,1,Farmer,Turf algae (within defended territories),38.2,0.062782837
+Cousine,Site 1,1,Scraper,Microscopic cyanobacteria,376.7,0.128653638
+Cousine,Site 1,1,Sediment sucker,Detritus and sediment,0,0
+Cousine,Site 1,2,Browser,Macroalgae,171.7,0.030910184
+Cousine,Site 1,2,Brusher,Detritus and sediment,17.1,0.00743772
+Cousine,Site 1,2,Concealed cropper,Turf algae,3.3,0.007633439
+Cousine,Site 1,2,Cropper,Turf algae,5,0.006951023
+Cousine,Site 1,2,Excavator,Microscopic cyanobacteria,340.2,0.136697284
+Cousine,Site 1,2,Farmer,Turf algae (within defended territories),30.1,0.03491182
+Cousine,Site 1,2,Scraper,Microscopic cyanobacteria,319.1,0.127984555
+Cousine,Site 1,2,Sediment sucker,Detritus and sediment,38.1,0.050967762
+Cousine,Site 1,3,Browser,Macroalgae,0,0
+Cousine,Site 1,3,Brusher,Detritus and sediment,34.3,0.05833487
+Cousine,Site 1,3,Concealed cropper,Turf algae,2.6,0.006988928
+Cousine,Site 1,3,Cropper,Turf algae,5.7,0.009969895
+Cousine,Site 1,3,Excavator,Microscopic cyanobacteria,260.4,0.0764666
+Cousine,Site 1,3,Farmer,Turf algae (within defended territories),21.5,0.023229555
+Cousine,Site 1,3,Scraper,Microscopic cyanobacteria,453.2,0.18806824
+Cousine,Site 1,3,Sediment sucker,Detritus and sediment,54.2,0.02600518
+Cousine,Site 1,4,Browser,Macroalgae,0,0
+Cousine,Site 1,4,Brusher,Detritus and sediment,0,0
+Cousine,Site 1,4,Concealed cropper,Turf algae,0,0
+Cousine,Site 1,4,Cropper,Turf algae,7.7,0.009888192
+Cousine,Site 1,4,Excavator,Microscopic cyanobacteria,32.9,0.092724956
+Cousine,Site 1,4,Farmer,Turf algae (within defended territories),24.3,0.025632921
+Cousine,Site 1,4,Scraper,Microscopic cyanobacteria,102.2,0.130666181
+Cousine,Site 1,4,Sediment sucker,Detritus and sediment,0,0
+Felicite,Site 1,1,Browser,Macroalgae,0,0
+Felicite,Site 1,1,Brusher,Detritus and sediment,22.8,0.037919478
+Felicite,Site 1,1,Concealed cropper,Turf algae,0,0
+Felicite,Site 1,1,Cropper,Turf algae,17.2,0.035433417
+Felicite,Site 1,1,Excavator,Microscopic cyanobacteria,104.2,0.076147873
+Felicite,Site 1,1,Farmer,Turf algae (within defended territories),29.2,0.035052874
+Felicite,Site 1,1,Scraper,Microscopic cyanobacteria,0,0
+Felicite,Site 1,1,Sediment sucker,Detritus and sediment,0,0
+Felicite,Site 1,2,Browser,Macroalgae,0,0
+Felicite,Site 1,2,Brusher,Detritus and sediment,5,0.014805774
+Felicite,Site 1,2,Concealed cropper,Turf algae,0,0
+Felicite,Site 1,2,Cropper,Turf algae,51.6,0.083203632
+Felicite,Site 1,2,Excavator,Microscopic cyanobacteria,24.4,0.041833279
+Felicite,Site 1,2,Farmer,Turf algae (within defended territories),30.8,0.031704465
+Felicite,Site 1,2,Scraper,Microscopic cyanobacteria,30,0.077940712
+Felicite,Site 1,2,Sediment sucker,Detritus and sediment,0,0
+Felicite,Site 1,3,Browser,Macroalgae,0,0
+Felicite,Site 1,3,Brusher,Detritus and sediment,0,0
+Felicite,Site 1,3,Concealed cropper,Turf algae,0,0
+Felicite,Site 1,3,Cropper,Turf algae,19.4,0.0363885
+Felicite,Site 1,3,Excavator,Microscopic cyanobacteria,34.8,0.025360429
+Felicite,Site 1,3,Farmer,Turf algae (within defended territories),22.2,0.02923186
+Felicite,Site 1,3,Scraper,Microscopic cyanobacteria,13.6,0.039155328
+Felicite,Site 1,3,Sediment sucker,Detritus and sediment,0,0
+Felicite,Site 1,4,Browser,Macroalgae,0,0
+Felicite,Site 1,4,Brusher,Detritus and sediment,12.1,0.041252946
+Felicite,Site 1,4,Concealed cropper,Turf algae,16.4,0.046761143
+Felicite,Site 1,4,Cropper,Turf algae,31.4,0.065440333
+Felicite,Site 1,4,Excavator,Microscopic cyanobacteria,11.9,0.031431862
+Felicite,Site 1,4,Farmer,Turf algae (within defended territories),19.5,0.022587483
+Felicite,Site 1,4,Scraper,Microscopic cyanobacteria,140.1,0.179818823
+Felicite,Site 1,4,Sediment sucker,Detritus and sediment,0,0
+Fregate,High,1,Browser,Macroalgae,79.8,0.06523691
+Fregate,High,1,Brusher,Detritus and sediment,1.8,0.002373634
+Fregate,High,1,Concealed cropper,Turf algae,0,0
+Fregate,High,1,Cropper,Turf algae,59.5,0.061252222
+Fregate,High,1,Excavator,Microscopic cyanobacteria,91,0.025430977
+Fregate,High,1,Farmer,Turf algae (within defended territories),23.6,0.014052574
+Fregate,High,1,Scraper,Microscopic cyanobacteria,62.1,0.05119504
+Fregate,High,1,Sediment sucker,Detritus and sediment,0,0
+Fregate,High,2,Browser,Macroalgae,90,0.066906104
+Fregate,High,2,Brusher,Detritus and sediment,6.2,0.004578971
+Fregate,High,2,Concealed cropper,Turf algae,0,0
+Fregate,High,2,Cropper,Turf algae,65.4,0.093221581
+Fregate,High,2,Excavator,Microscopic cyanobacteria,212.6,0.056144277
+Fregate,High,2,Farmer,Turf algae (within defended territories),19.2,0.014009991
+Fregate,High,2,Scraper,Microscopic cyanobacteria,125.5,0.061891827
+Fregate,High,2,Sediment sucker,Detritus and sediment,0,0
+Fregate,High,3,Browser,Macroalgae,314.2,0.33963348
+Fregate,High,3,Brusher,Detritus and sediment,9.3,0.006868456
+Fregate,High,3,Concealed cropper,Turf algae,3.3,0.007633439
+Fregate,High,3,Cropper,Turf algae,117.4,0.245795987
+Fregate,High,3,Excavator,Microscopic cyanobacteria,282,0.24621473
+Fregate,High,3,Farmer,Turf algae (within defended territories),29.1,0.023848449
+Fregate,High,3,Scraper,Microscopic cyanobacteria,106.3,0.034455318
+Fregate,High,3,Sediment sucker,Detritus and sediment,111.2,0.117745966
+Fregate,High,4,Browser,Macroalgae,0,0
+Fregate,High,4,Brusher,Detritus and sediment,17.2,0.046019509
+Fregate,High,4,Concealed cropper,Turf algae,62.7,0.047882063
+Fregate,High,4,Cropper,Turf algae,0,0
+Fregate,High,4,Excavator,Microscopic cyanobacteria,188.5,0.125396053
+Fregate,High,4,Farmer,Turf algae (within defended territories),6.2,0.008525051
+Fregate,High,4,Scraper,Microscopic cyanobacteria,56.6,0.048227729
+Fregate,High,4,Sediment sucker,Detritus and sediment,0,0
+Fregate,Low,1,Browser,Macroalgae,40.8,0.057699298
+Fregate,Low,1,Brusher,Detritus and sediment,84.4,0.054732662
+Fregate,Low,1,Concealed cropper,Turf algae,25.1,0.042488754
+Fregate,Low,1,Cropper,Turf algae,136,0.159451072
+Fregate,Low,1,Excavator,Microscopic cyanobacteria,0,0
+Fregate,Low,1,Farmer,Turf algae (within defended territories),0,0
+Fregate,Low,1,Scraper,Microscopic cyanobacteria,17.7,0.033267456
+Fregate,Low,1,Sediment sucker,Detritus and sediment,0,0
+Fregate,Low,2,Browser,Macroalgae,0,0
+Fregate,Low,2,Brusher,Detritus and sediment,49.4,0.065851667
+Fregate,Low,2,Concealed cropper,Turf algae,0,0
+Fregate,Low,2,Cropper,Turf algae,122.4,0.223542821
+Fregate,Low,2,Excavator,Microscopic cyanobacteria,0,0
+Fregate,Low,2,Farmer,Turf algae (within defended territories),0,0
+Fregate,Low,2,Scraper,Microscopic cyanobacteria,93.2,0.101456812
+Fregate,Low,2,Sediment sucker,Detritus and sediment,37.1,0.011401375
+Fregate,Low,3,Browser,Macroalgae,142.8,0.201947542
+Fregate,Low,3,Brusher,Detritus and sediment,18.2,0.006772877
+Fregate,Low,3,Concealed cropper,Turf algae,5.2,0.00861132
+Fregate,Low,3,Cropper,Turf algae,53.7,0.093042657
+Fregate,Low,3,Excavator,Microscopic cyanobacteria,93.9,0.047045916
+Fregate,Low,3,Farmer,Turf algae (within defended territories),0,0
+Fregate,Low,3,Scraper,Microscopic cyanobacteria,65.7,0.019665061
+Fregate,Low,3,Sediment sucker,Detritus and sediment,0,0
+Fregate,Low,4,Browser,Macroalgae,0,0
+Fregate,Low,4,Brusher,Detritus and sediment,49.1,0.015889232
+Fregate,Low,4,Concealed cropper,Turf algae,25.6,0.048596667
+Fregate,Low,4,Cropper,Turf algae,26.3,0.042774945
+Fregate,Low,4,Excavator,Microscopic cyanobacteria,94.6,0.089642567
+Fregate,Low,4,Farmer,Turf algae (within defended territories),14.4,0.010507493
+Fregate,Low,4,Scraper,Microscopic cyanobacteria,68.3,0.03671775
+Fregate,Low,4,Sediment sucker,Detritus and sediment,0,0

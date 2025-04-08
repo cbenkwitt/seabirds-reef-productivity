@@ -1,0 +1,51 @@
+"","Island","Site","Exposure_J_m3","Side","seabird.biomass.total","Sample.ID","Date","Sample.Type","Species","N15"
+"1","Aride","Site 1",87.04,"south",167.4759249,250,"08_November_2022","Leaves","Scaveola",14.5
+"2","Aride","Site 1",87.04,"south",167.4759249,251,"08_November_2022","Leaves","Scaveola",14.9
+"3","Aride","Site 1",87.04,"south",167.4759249,252,"08_November_2022","Leaves","Scaveola",14.4
+"4","Aride","Site 1",87.04,"south",167.4759249,253,"08_November_2022","Leaves","Scaveola",14
+"5","Aride","Site 1",87.04,"south",167.4759249,254,"08_November_2022","Leaves","Scaveola",13.9
+"6","Aride","Site 1",87.04,"south",167.4759249,255,"08_November_2022","Leaves","Scaveola",14
+"7","Aride","Site 1",87.04,"south",167.4759249,256,"08_November_2022","Leaves","Scaveola",16.3
+"8","Aride","Site 1",87.04,"south",167.4759249,257,"08_November_2022","Leaves","Scaveola",15.6
+"9","Aride","Site 1",87.04,"south",167.4759249,258,"08_November_2022","Leaves","Scaveola",15.2
+"10","Aride","Site 1",87.04,"south",167.4759249,259,"08_November_2022","Leaves","Scaveola",14.8
+"11","Cousine","Site 1",483.27,"northeast",156.2061952,290,"12_November_2022","Leaves","Scaveola",14.8
+"12","Cousine","Site 1",483.27,"northeast",156.2061952,291,"12_November_2022","Leaves","Scaveola",13.7
+"13","Cousine","Site 1",483.27,"northeast",156.2061952,292,"12_November_2022","Leaves","Scaveola",13.7
+"14","Cousine","Site 1",483.27,"northeast",156.2061952,293,"12_November_2022","Leaves","Scaveola",14.1
+"15","Cousine","Site 1",483.27,"northeast",156.2061952,294,"12_November_2022","Leaves","Scaveola",13.1
+"16","Cousine","Site 1",483.27,"northeast",156.2061952,295,"12_November_2022","Leaves","Scaveola",12.4
+"17","Cousine","Site 1",483.27,"northeast",156.2061952,296,"12_November_2022","Leaves","Scaveola",12.3
+"18","Cousine","Site 1",483.27,"northeast",156.2061952,297,"12_November_2022","Leaves","Scaveola",14.1
+"19","Cousine","Site 1",483.27,"northeast",156.2061952,298,"12_November_2022","Leaves","Scaveola",13.9
+"20","Cousine","Site 1",483.27,"northeast",156.2061952,299,"12_November_2022","Leaves","Scaveola",13.9
+"21","Felicite","Site 1",168.61,"southwest",0,447,"15_November_2022","Leaves","Scaveola",3
+"22","Felicite","Site 1",168.61,"southwest",0,448,"15_November_2022","Leaves","Scaveola",4.6
+"23","Felicite","Site 1",168.61,"southwest",0,449,"15_November_2022","Leaves","Scaveola",3.7
+"24","Felicite","Site 1",168.61,"southwest",0,450,"15_November_2022","Leaves","Scaveola",2.8
+"25","Felicite","Site 1",168.61,"southwest",0,451,"15_November_2022","Leaves","Scaveola",3.3
+"26","Felicite","Site 1",168.61,"southwest",0,452,"15_November_2022","Leaves","Scaveola",5.2
+"27","Felicite","Site 1",168.61,"southwest",0,453,"15_November_2022","Leaves","Scaveola",4.4
+"28","Felicite","Site 1",168.61,"southwest",0,454,"15_November_2022","Leaves","Scaveola",3.9
+"29","Felicite","Site 1",168.61,"southwest",0,455,"15_November_2022","Leaves","Scaveola",5
+"30","Felicite","Site 1",168.61,"southwest",0,456,"15_November_2022","Leaves","Scaveola",4.9
+"31","Fregate","High",394.16,"northeast",46.2549573,166,"04-November_2022","Leaves","Scaveola",12.1
+"32","Fregate","High",394.16,"northeast",46.2549573,167,"04-November_2022","Leaves","Scaveola",11.6
+"33","Fregate","High",394.16,"northeast",46.2549573,168,"04-November_2022","Leaves","Scaveola",15.1
+"34","Fregate","High",394.16,"northeast",46.2549573,169,"04-November_2022","Leaves","Scaveola",10.2
+"35","Fregate","High",394.16,"northeast",46.2549573,170,"04-November_2022","Leaves","Scaveola",9.8
+"36","Fregate","High",394.16,"northeast",46.2549573,171,"04-November_2022","Leaves","Scaveola",11.8
+"37","Fregate","High",394.16,"northeast",46.2549573,172,"04-November_2022","Leaves","Scaveola",13.1
+"38","Fregate","High",394.16,"northeast",46.2549573,173,"04-November_2022","Leaves","Scaveola",10.1
+"39","Fregate","High",394.16,"northeast",46.2549573,174,"04-November_2022","Leaves","Scaveola",9.2
+"40","Fregate","High",394.16,"northeast",46.2549573,175,"04-November_2022","Leaves","Scaveola",12.3
+"41","Fregate","Low",448.98,"southwest",3.901278061,176,"05-November_2022","Leaves","Scaveola",6.6
+"42","Fregate","Low",448.98,"southwest",3.901278061,177,"05-November_2022","Leaves","Scaveola",8.3
+"43","Fregate","Low",448.98,"southwest",3.901278061,178,"05-November_2022","Leaves","Scaveola",6.4
+"44","Fregate","Low",448.98,"southwest",3.901278061,179,"05-November_2022","Leaves","Scaveola",9.5
+"45","Fregate","Low",448.98,"southwest",3.901278061,180,"05-November_2022","Leaves","Scaveola",7
+"46","Fregate","Low",448.98,"southwest",3.901278061,181,"05-November_2022","Leaves","Scaveola",9.9
+"47","Fregate","Low",448.98,"southwest",3.901278061,182,"05-November_2022","Leaves","Scaveola",7.1
+"48","Fregate","Low",448.98,"southwest",3.901278061,183,"05-November_2022","Leaves","Scaveola",9.6
+"49","Fregate","Low",448.98,"southwest",3.901278061,184,"05-November_2022","Leaves","Scaveola",8.9
+"50","Fregate","Low",448.98,"southwest",3.901278061,185,"05-November_2022","Leaves","Scaveola",7.8

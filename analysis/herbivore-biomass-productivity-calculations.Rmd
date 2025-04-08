@@ -31,34 +31,44 @@ citation("rfishprod")
 sey_herb_dat<-read.csv("../data/seychelles_herbivore_census.csv", stringsAsFactors = TRUE)
 sey_herb_dat
 
+
 #trait data
+#R1 - updated how and what functional groups and added here to replace FG.fine.
+#Note - family still says Scaridae for parrotfishes, but changed in Supplemental Table
+#Note - FG.fine is the original functional groupings. Now rely on FG.how and FG.what
 sey_trait_dat<-read.csv("../data/seychelles_herbivore_spp_trait_list.csv", stringsAsFactors = TRUE)
 sey_trait_dat
+
+
 ```
 
 
 #sum biomass by transect, and by transect/feeding group----
 ```{r}
+#combine herbivore biomass with trait data:----
+sey_herb_trait_dat<-
+  left_join(sey_herb_dat, sey_trait_dat, by = join_by(Family, Species))
+sey_herb_trait_dat
 
 ##sum by transect only (total herbivore biomass)----
 sey_herb_biomass_transect<-
-  sey_herb_dat%>%
+  sey_herb_trait_dat%>%
   group_by(Island, Site, Transect)%>%
   summarize(herb_biomass_kg_ha = sum(biomass.kgha))%>%
   ungroup()
 sey_herb_biomass_transect
 
 ##sum by transect and feeding group (herbivore biomass)----
-#need to keep FG.fine even when 0 for transect FG.finer_New
+#need to keep FG.how and FG.what even when 0 for transect 
 sey_herb_biomass_transect_fg<-
-   sey_herb_dat%>%
-    select(Island, Site, Transect, FG.fine, biomass.kgha)%>%
+   sey_herb_trait_dat%>%
+    select(Island, Site, Transect, FG.how, FG.what, biomass.kgha)%>%
     droplevels()%>%
   group_by_at(vars(-biomass.kgha)) %>%
   summarise(biomass_kg_ha = sum(biomass.kgha)) %>%
   ungroup %>%
   complete(nesting(Island, Site, Transect,),
-           nesting(FG.fine),
+           nesting( FG.how, FG.what),
            fill = list(biomass_kg_ha = 0))
 
 sey_herb_biomass_transect_fg
@@ -70,14 +80,14 @@ sey_herb_biomass_transect_fg
 ```{r}
 #will need to make any lengths >= max size < max size (because we're assuming lengths were slightly overestimated in the field), otherwise formula doesn't work
 
-sey_herb_dat%>%
+sey_herb_trait_dat%>%
     filter(Size>=MaxSizeTL)
 #1 Chlorurus atrilunula = 38 - 38 (so equals max size, note had updated max size based on field surveys with many individuals > 30)
 #one Acanthurus tennentii = 31 - 31 (so equals max size)
 #one Ctenochaetus truncatus = 17 - 16 (so one cm > max size)
 
 sey_herb_dat_for_prod<-
-  sey_herb_dat%>%
+  sey_herb_trait_dat%>%
   mutate(Size = if_else(Size >= MaxSizeTL, (MaxSizeTL- 0.1),
                             as.numeric(Size)))
 
@@ -168,13 +178,13 @@ sey_herb_productivity_transect
 #need to keep FG.fine even when 0 for transect
 sey_herb_productivity_transect_fg<-
   datagr%>%
-    select(Island, Site, Transect, FG.fine, Biomass_gained_1_kg_ha)%>%
+    select(Island, Site, Transect, FG.how, FG.what, Biomass_gained_1_kg_ha)%>%
     droplevels()%>%
   group_by_at(vars(-Biomass_gained_1_kg_ha)) %>%
   summarise(productivity_kg_ha_day = sum(Biomass_gained_1_kg_ha)) %>%
   ungroup %>%
   complete(nesting(Island, Site, Transect),
-           nesting(FG.fine),
+           nesting(FG.how, FG.what),
            fill = list(productivity_kg_ha_day = 0))
 sey_herb_productivity_transect_fg
 
@@ -198,7 +208,7 @@ sey_herb_bio_prod_transect
 
 ##by transect and fg----
 sey_herb_bio_prod_transect_fg<-left_join(sey_herb_biomass_transect_fg, sey_herb_productivity_transect_fg, 
-                                      by = c("Island", "Site", "Transect", "FG.fine"))
+                                      by = c("Island", "Site", "Transect", "FG.how", "FG.what"))
 sey_herb_bio_prod_transect_fg
 
 

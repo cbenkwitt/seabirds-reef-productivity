@@ -1,0 +1,1274 @@
+---
+title: "dags_R1"
+author: "CEB"
+date: '2025-03-20'
+output: html_document
+---
+
+#check dag data consistency
+#determine minimum adjustment sets for testing causal hypotheses
+
+##load packages
+```{r}
+library(tidyverse) #for everything
+
+#for dags:
+library(dagitty)
+library(ggdag)
+
+#for corrplots:
+library(corrplot)
+library(rstatix)
+
+```
+
+
+###set plot theme
+```{r}
+theme_casey<-
+  theme_bw()+
+  theme(panel.grid.major = element_blank(), # remove gridlines
+        panel.grid.minor = element_blank(), #remove gridlines
+        strip.background = element_blank(), 
+        text = element_text(size = 14, family = "Arial"),
+        rect = element_rect(fill = "transparent"),  
+        plot.background = element_rect(fill = "transparent", color = NA)
+        )
+
+theme_set(theme_casey) 
+  
+```
+
+
+#load data
+```{r}
+
+#For nutrient analysis:
+seychelles_leaf_n15_dat<-read.csv("../data/seychelles_leaf_n15_dat.csv", stringsAsFactors = TRUE)  
+seychelles_turf_n15_dat<-read.csv("../data/seychelles_turf_n15_dat.csv", stringsAsFactors = TRUE)  
+
+seychelles_turf_n15_dat_2<-
+  seychelles_turf_n15_dat%>%
+  rename(turf_n15 = N15)
+
+
+seychelles_leaf_n15_dat_2<-
+  seychelles_leaf_n15_dat%>%
+  rename(leaf_n15 = N15)
+
+#For turf productivity analysis:
+seychelles_turf_pp_by_cage_dat<-read.csv("../data/seychelles_turf_pp_by_cage_dat.csv", stringsAsFactors = TRUE)  
+
+#For turf cover analysis, herbivore biomass, productivity analysis (all transect-level uvc data):
+seychelles_uvc_dat<-read.csv("../data/seychelles_uvc_dat.csv", stringsAsFactors = TRUE)  
+
+#for site-level data:
+seychelles_all_site_level_dat<-read.csv("../data/seychelles_all_site_level_dat.csv", stringsAsFactors = TRUE)
+
+
+```
+
+
+#for testing dag data consistency overall, need to make column names match:
+```{r}
+dag_dat<-
+  seychelles_all_site_level_dat%>%
+   ungroup()%>%
+  rename(exp = Exposure_J_m3,
+         seabird = seabird.biomass.total,
+          ln15 = mean_leaf_n15,
+         tn15 = mean_turf_n15,
+          pp = mean_turf_prod_mm_day,
+         ht = mean_turf_height,
+         sp = mean_herb_prod,
+         bio_herb = mean_herb_bio,
+         cover_turf = turf_cover,
+         coral = coral_cover,
+         pred = mean_pred_bio,
+         struct = mean_structure)%>%
+  dplyr::select(c(exp, seabird, ln15, tn15, pp, ht, sp, bio_herb, cover_turf, coral, pred, struct))
+  
+
+dag_dat
+```
+
+#DAG 1 - bottom-up effects - only uncontrolled for variables (i.e., exposure, predators, structure, coral cover):
+```{r}
+
+#copied from dagitty.net, with the position arguments removed (and unobserved variables explicitly named at end):
+
+dag1_cexcl<-dagitty("
+dag {
+coral -> cover_turf
+coral -> struct
+cover_turf -> bio_herb
+cover_turf -> sp
+exp -> bio_herb
+exp -> coral
+exp -> cover_turf
+exp -> ht
+exp -> pp
+exp -> pred
+exp -> prior_herbivory
+exp -> sp
+exp -> struct
+exp -> tn15
+ht -> pp
+pp -> bio_herb
+pp -> sp
+pred -> bio_herb
+pred -> sp
+prior_herbivory -> cover_turf
+prior_herbivory -> ht
+seabird -> ln15
+seabird -> tn15
+struct -> bio_herb
+struct -> pred
+struct -> sp
+tn15 -> bio_herb
+tn15 -> cover_turf
+tn15 -> ht
+tn15 -> pp
+tn15 -> sp
+
+prior_herbivory[unobserved]
+
+}
+")
+
+
+
+
+```
+
+
+
+#DAG 1 - bottom-up effects - all variables
+```{r}
+#"DAGs should include all measured and unmeasured variables required to depict the system or process under study, as well as all common causes of any pair of variables included in the DAG (Glymour & Greenland, 2008; Spirtes et al., 2001)." (Arif) - So don't need causes of one variable but not anything else*
+
+#copied from dagitty.net, with the position arguments removed (and unobserved variables explicitly named at end):
+
+dag1_all<-dagitty("dag {
+coral -> cover_turf
+coral -> struct
+cover_turf -> bio_herb
+cover_turf -> sp
+depth -> bio_herb
+depth -> coral
+depth -> cover_turf
+depth -> ht
+depth -> pp
+depth -> pred
+depth -> prior_herbivory
+depth -> sp
+depth -> struct
+depth -> tn15
+exp -> bio_herb
+exp -> coral
+exp -> cover_turf
+exp -> ht
+exp -> pp
+exp -> pred
+exp -> prior_herbivory
+exp -> sp
+exp -> struct
+exp -> tn15
+fish -> bio_herb
+fish -> pred
+fish -> prior_herbivory
+fish -> sp
+ht -> pp
+pp -> bio_herb
+pp -> sp
+pred -> bio_herb
+pred -> sp
+prior_herbivory -> cover_turf
+prior_herbivory -> ht
+seabird -> ln15
+seabird -> tn15
+struct -> bio_herb
+struct -> pred
+struct -> sp
+tn15 -> bio_herb
+tn15 -> cover_turf
+tn15 -> ht
+tn15 -> pp
+tn15 -> sp
+zone -> bio_herb
+zone -> coral
+zone -> cover_turf
+zone -> ht
+zone -> pp
+zone -> pred
+zone -> prior_herbivory
+zone -> sp
+zone -> struct
+zone -> tn15
+
+
+prior_herbivory[unobserved]
+zone[adjusted]
+depth[adjusted]
+fish[adjusted]
+}
+
+")
+
+
+```
+
+
+
+#Alt DAG 2 - bottom-up + top-down effects - only uncontrolled for variables (i.e., exposure, predators, structure, coral cover):
+```{r}
+#copied from dagitty.net, with the position arguments removed (and unobserved variables explicitly named at end):
+
+dag2_cexcl<-dagitty("dag {
+bio_herb -> cover_turf
+bio_herb -> herbivory
+coral -> cover_turf
+coral -> struct
+exp -> bio_herb
+exp -> coral
+exp -> cover_turf
+exp -> herbivory
+exp -> ht
+exp -> pp
+exp -> pred
+exp -> prior_turf
+exp -> sp
+exp -> struct
+exp -> tn15
+herbivory -> cover_turf
+ht -> herbivory
+ht -> pp
+pp -> bio_herb
+pp -> herbivory
+pp -> sp
+pred -> bio_herb
+pred -> herbivory
+pred -> sp
+prior_turf -> cover_turf
+prior_turf -> ht
+seabird -> ln15
+seabird -> tn15
+sp -> cover_turf
+sp -> herbivory
+struct -> bio_herb
+struct -> herbivory
+struct -> pred
+struct -> sp
+tn15 -> bio_herb
+tn15 -> cover_turf
+tn15 -> herbivory
+tn15 -> ht
+tn15 -> pp
+tn15 -> sp
+
+herbivory[unobserved]
+prior_turf[unobserved]
+}
+")
+
+```
+
+
+#Alt DAG 2 - bottom-up + top-down effects - all variables:
+```{r}
+#copied from dagitty.net, with the position arguments removed (and unobserved variables explicitly named at end):
+
+dag2_all<-dagitty("dag {
+bio_herb -> cover_turf
+bio_herb -> herbivory
+coral -> cover_turf
+coral -> struct
+depth -> bio_herb
+depth -> coral
+depth -> cover_turf
+depth -> pp
+depth -> pred
+depth -> prior_turf
+depth -> sp
+depth -> tn15
+exp -> bio_herb
+exp -> coral
+exp -> cover_turf
+exp -> herbivory
+exp -> ht
+exp -> pp
+exp -> pred
+exp -> prior_turf
+exp -> sp
+exp -> struct
+exp -> tn15
+fish -> bio_herb
+fish -> pred
+fish -> sp
+herbivory -> cover_turf
+ht -> pp
+pp -> bio_herb
+pp -> herbivory
+pp -> sp
+pred -> bio_herb
+pred -> herbivory
+pred -> sp
+prior_turf -> herbivory
+prior_turf -> ht
+seabird -> ln15
+seabird -> tn15
+sp -> cover_turf
+sp -> herbivory
+struct -> bio_herb
+struct -> herbivory
+struct -> pred
+struct -> sp
+tn15 -> bio_herb
+tn15 -> cover_turf
+tn15 -> herbivory
+tn15 -> ht
+tn15 -> pp
+tn15 -> sp
+zone -> bio_herb
+zone -> cover_turf
+zone -> ht
+zone -> pp
+zone -> pred
+zone -> prior_turf
+zone -> sp
+
+herbivory[unobserved]
+prior_turf[unobserved]
+zone[adjusted]
+depth[adjusted]
+fish[adjusted]
+
+}
+")
+
+
+```
+
+
+#-----------test for dag data consitency:------
+
+```{r}
+#make reduced dag by removing variables with 0 variance (i.e., ones we controlled for):
+#controls excluded dags (dag1_cexcl and dag2_cexcl) don't change. Other two dags just become the same as controls excluded. so use those to test for dag data consistency: 
+
+#tests: dag 1 -----
+dag_ss1 <- localTests(dag1_cexcl, data = dag_dat)
+dag_ss1 
+#looks pretty good - just leaf n15 not be independent. could add connection of leaf n15 with turf n15. likely connected by island size?
+
+#calculate shipley's C:
+C_stat <- -2 * sum(log(dag_ss1$p))
+C_stat
+
+#get degrees of freedom:
+df <- nrow(dag_ss1)
+
+#calculate p-value for C statistic:
+p_value <- 1 - pchisq(C_stat, df)
+cat("Shipley's C =", C_stat, "\nDegrees of freedom =", df, "\np-value =", p_value)
+#very good dag data consistency (high p-value, so dag fits data well)
+
+
+#tests: dag 2 -----
+dag_ss2 <- localTests(dag2_cexcl, data = dag_dat)
+dag_ss2 
+#looks pretty good - just leaf n15 not be independent. could add connection of leaf n15 with turf n15. likely connected by island size?
+
+#calculate shipley's C:
+C_stat2 <- -2 * sum(log(dag_ss2$p))
+C_stat2
+
+#get degrees of freedom:
+df2 <- nrow(dag_ss2)
+
+#calculate p-value for C statistic:
+p_value2 <- 1 - pchisq(C_stat2, df2)
+cat("Shipley's C =", C_stat2, "\nDegrees of freedom =", df2, "\np-value =", p_value2)
+#very good dag data consistency (high p-value, so dag fits data well)
+
+
+
+
+```
+
+
+
+#so based on above, try model with island size. first dag 1------
+```{r}
+
+dag1_cexcl_size<-dagitty("dag {
+coral -> cover_turf
+coral -> struct
+cover_turf -> bio_herb
+cover_turf -> sp
+distance_to_seabirds -> ln15
+distance_to_seabirds -> tn15
+exp -> bio_herb
+exp -> coral
+exp -> cover_turf
+exp -> ht
+exp -> pp
+exp -> pred
+exp -> prior_herbivory
+exp -> sp
+exp -> struct
+exp -> tn15
+ht -> pp
+island_size -> distance_to_seabirds
+island_size -> ln15
+island_size -> rats
+island_size -> seabird
+island_size -> tn15
+pp -> bio_herb
+pp -> sp
+pred -> bio_herb
+pred -> sp
+prior_herbivory -> cover_turf
+prior_herbivory -> ht
+rats -> seabird
+seabird -> ln15
+seabird -> tn15
+struct -> bio_herb
+struct -> pred
+struct -> sp
+tn15 -> bio_herb
+tn15 -> cover_turf
+tn15 -> ht
+tn15 -> pp
+tn15 -> sp
+
+prior_herbivory[unobserved]
+distance_to_seabirds[unobserved]
+}")
+
+
+dag_dat2<-
+  seychelles_all_site_level_dat%>%
+   ungroup()%>%
+   mutate(island_size = case_when(Island == "Aride"~71,
+                                 Island == "Cousine"~26,
+                                 Island == "Felicite"~268,
+                                 Island == "Fregate"~206),
+         rats_f = case_when(Island == "Aride"~"never_rats",
+                                 Island == "Cousine"~"never_rats",
+                                 Island == "Felicite"~"rats",
+                                 Island == "Fregate"~"rats_eradicated"),
+         rats = case_when(Island == "Aride"~0, #make an ordered factor for data checks
+                                 Island == "Cousine"~0,
+                                 Island == "Felicite"~2,
+                                 Island == "Fregate"~1))%>%
+  rename(exp = Exposure_J_m3,
+         seabird = seabird.biomass.total,
+          ln15 = mean_leaf_n15,
+         tn15 = mean_turf_n15,
+          pp = mean_turf_prod_mm_day,
+         ht = mean_turf_height,
+         sp = mean_herb_prod,
+         bio_herb = mean_herb_bio,
+         cover_turf = turf_cover,
+         coral = coral_cover,
+         pred = mean_pred_bio,
+         struct = mean_structure)%>%
+  dplyr::select(c(exp, seabird, ln15, tn15, pp, ht, sp, bio_herb, cover_turf, coral, pred, struct, rats, island_size))
+  
+
+
+#tests: dag 1 -----
+dag_ss1_size <- localTests(dag1_cexcl_size, data = dag_dat2)
+dag_ss1_size 
+#now all good*
+
+#calculate shipley's C:
+C_stat <- -2 * sum(log(dag_ss1_size$p))
+C_stat
+
+#get degrees of freedom:
+df <- nrow(dag_ss1_size)
+
+#calculate p-value for C statistic:
+p_value <- 1 - pchisq(C_stat, df)
+cat("Shipley's C =", C_stat, "\nDegrees of freedom =", df, "\np-value =", p_value)
+#very good dag data consistency (high p-value, so dag fits data well) - way higher p-value than previous model. use this one*
+
+
+
+```
+
+
+#so based on above, try model with island size. now dag 2------
+```{r}
+
+dag2_cexcl_size<-dagitty("dag {
+bio_herb -> cover_turf
+bio_herb -> herbivory
+coral -> cover_turf
+coral -> struct
+distance_to_seabirds -> ln15
+distance_to_seabirds -> tn15
+exp -> bio_herb
+exp -> coral
+exp -> cover_turf
+exp -> herbivory
+exp -> ht
+exp -> pp
+exp -> pred
+exp -> prior_turf
+exp -> sp
+exp -> struct
+exp -> tn15
+herbivory -> cover_turf
+ht -> herbivory
+ht -> pp
+island_size -> distance_to_seabirds
+island_size -> ln15
+island_size -> rats
+island_size -> seabird
+island_size -> tn15
+pp -> bio_herb
+pp -> herbivory
+pp -> sp
+pred -> bio_herb
+pred -> herbivory
+pred -> sp
+prior_turf -> cover_turf
+prior_turf -> ht
+rats -> seabird
+seabird -> ln15
+seabird -> tn15
+sp -> cover_turf
+sp -> herbivory
+struct -> bio_herb
+struct -> herbivory
+struct -> pred
+struct -> sp
+tn15 -> bio_herb
+tn15 -> cover_turf
+tn15 -> herbivory
+tn15 -> ht
+tn15 -> pp
+tn15 -> sp
+
+herbivory[unobserved]
+prior_turf[unobserved]
+distance_to_seabirds[unobserved]
+
+}")
+
+
+
+#tests: dag 2 -----
+dag_ss2_size <- localTests(dag2_cexcl_size, data = dag_dat2)
+dag_ss2_size 
+#now all good*
+
+#calculate shipley's C:
+C_stat <- -2 * sum(log(dag_ss2_size$p))
+C_stat
+
+#get degrees of freedom:
+df <- nrow(dag_ss2_size)
+
+#calculate p-value for C statistic:
+p_value <- 1 - pchisq(C_stat, df)
+cat("Shipley's C =", C_stat, "\nDegrees of freedom =", df, "\np-value =", p_value)
+#very good dag data consistency (high p-value, so dag fits data well) - way higher p-value than previous model. use this one*
+
+
+
+```
+
+
+#also create models with island size for dags with all variables included (even those controlled for):
+```{r}
+###dag 1-----
+dag1_all_size<-dagitty("dag {
+coral -> cover_turf
+coral -> struct
+cover_turf -> bio_herb
+cover_turf -> sp
+depth -> bio_herb
+depth -> coral
+depth -> cover_turf
+depth -> ht
+depth -> pp
+depth -> pred
+depth -> prior_herbivory
+depth -> sp
+depth -> struct
+depth -> tn15
+distance_to_seabirds -> ln15
+distance_to_seabirds -> tn15
+exp -> bio_herb
+exp -> coral
+exp -> cover_turf
+exp -> ht
+exp -> pp
+exp -> pred
+exp -> prior_herbivory
+exp -> sp
+exp -> struct
+exp -> tn15
+fish -> bio_herb
+fish -> pred
+fish -> prior_herbivory
+fish -> sp
+ht -> pp
+island_size -> distance_to_seabirds
+island_size -> ln15
+island_size -> rats
+island_size -> seabird
+island_size -> tn15
+pp -> bio_herb
+pp -> sp
+pred -> bio_herb
+pred -> sp
+prior_herbivory -> cover_turf
+prior_herbivory -> ht
+rats -> seabird
+seabird -> ln15
+seabird -> tn15
+struct -> bio_herb
+struct -> pred
+struct -> sp
+tn15 -> bio_herb
+tn15 -> cover_turf
+tn15 -> ht
+tn15 -> pp
+tn15 -> sp
+zone -> bio_herb
+zone -> coral
+zone -> cover_turf
+zone -> ht
+zone -> pp
+zone -> pred
+zone -> prior_herbivory
+zone -> sp
+zone -> struct
+zone -> tn15
+
+distance_to_seabirds[unobserved]
+prior_herbivory[unobserved]
+zone[adjusted]
+depth[adjusted]
+fish[adjusted]
+}
+
+")
+
+###dag 2----------
+dag2_all_size<-dagitty("dag {
+bio_herb -> cover_turf
+bio_herb -> herbivory
+coral -> cover_turf
+coral -> struct
+depth -> bio_herb
+depth -> coral
+depth -> cover_turf
+depth -> pp
+depth -> pred
+depth -> prior_turf
+depth -> sp
+depth -> tn15
+distance_to_seabirds -> ln15
+distance_to_seabirds -> tn15
+exp -> bio_herb
+exp -> coral
+exp -> cover_turf
+exp -> herbivory
+exp -> ht
+exp -> pp
+exp -> pred
+exp -> prior_turf
+exp -> sp
+exp -> struct
+exp -> tn15
+fish -> bio_herb
+fish -> pred
+fish -> sp
+herbivory -> cover_turf
+ht -> pp
+island_size -> distance_to_seabirds
+island_size -> ln15
+island_size -> rats
+island_size -> seabird
+island_size -> tn15
+pp -> bio_herb
+pp -> herbivory
+pp -> sp
+pred -> bio_herb
+pred -> herbivory
+pred -> sp
+prior_turf -> herbivory
+prior_turf -> ht
+rats -> seabird
+seabird -> ln15
+seabird -> tn15
+sp -> cover_turf
+sp -> herbivory
+struct -> bio_herb
+struct -> herbivory
+struct -> pred
+struct -> sp
+tn15 -> bio_herb
+tn15 -> cover_turf
+tn15 -> herbivory
+tn15 -> ht
+tn15 -> pp
+tn15 -> sp
+zone -> bio_herb
+zone -> cover_turf
+zone -> ht
+zone -> pp
+zone -> pred
+zone -> prior_turf
+zone -> sp
+
+
+distance_to_seabirds[unobserved]
+herbivory[unobserved]
+prior_turf[unobserved]
+zone[adjusted]
+depth[adjusted]
+fish[adjusted]
+
+}
+")
+
+```
+
+
+
+###-----minimum adjustment sets-------####
+#need for: dag1_cexcl, dag2_cexcl, dag1_all, dag2_all, dag1_cexl_size, dag2_cexl_size dag1_all_size, dag2_all_size
+
+#dag1_cexcl
+```{r}
+
+##h1-h2
+adjustmentSets(dag1_cexcl, exposure = "seabird", outcome = "ln15",
+               type = "minimal", effect = c("total", "direct"))
+#none needed
+
+
+adjustmentSets(dag1_cexcl, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c("total" ))
+#none needed
+
+adjustmentSets(dag1_cexcl, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c( "direct"))
+#none needed
+
+
+##h3-h4
+adjustmentSets(dag1_cexcl, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("total"))
+#{ exp }
+
+
+adjustmentSets(dag1_cexcl, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("direct"))
+#{ exp, ht }
+
+
+adjustmentSets(dag1_cexcl, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("total"))
+#{ exp }
+
+
+adjustmentSets(dag1_cexcl, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("direct"))
+#{ exp }
+
+
+##h5-h6
+adjustmentSets(dag1_cexcl, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("total"))
+#{ cover_turf, exp, struct, tn15 }
+#{ coral, cover_turf, exp, tn15 }
+#{ exp, ht, tn15 }
+
+adjustmentSets(dag1_cexcl, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("direct"))
+#{ cover_turf, exp, struct, tn15 }
+#{ coral, cover_turf, exp, tn15 }
+#{ exp, ht, tn15 }
+
+adjustmentSets(dag1_cexcl, exposure = "pp", outcome = "bio_herb",
+               type = "minimal", effect = c("total"))
+#{ cover_turf, exp, struct, tn15 }
+#{ coral, cover_turf, exp, tn15 }
+#{ exp, ht, tn15 }
+
+adjustmentSets(dag1_cexcl, exposure = "pp", outcome = "bio_herb",
+               type = "minimal", effect = c("direct"))
+#{ cover_turf, exp, struct, tn15 }
+#{ coral, cover_turf, exp, tn15 }
+#{ exp, ht, tn15 }
+
+
+##h7-h8
+adjustmentSets(dag1_cexcl, exposure = "cover_turf", outcome = "sp",
+               type = "minimal", effect = c("total"))
+#{ exp, pp, struct, tn15 }
+#{ coral, exp, pp, tn15 }
+#{ exp, ht, struct, tn15 }
+#{ coral, exp, ht, tn15 }
+
+adjustmentSets(dag1_cexcl, exposure = "cover_turf", outcome = "sp",
+               type = "minimal", effect = c("direct"))
+#{ exp, pp, struct, tn15 }
+#{ coral, exp, pp, tn15 }
+#{ exp, ht, struct, tn15 }
+#{ coral, exp, ht, tn15 }
+
+
+adjustmentSets(dag1_cexcl, exposure = "cover_turf", outcome = "bio_herb",
+               type = "minimal", effect = c("total"))
+#{ exp, pp, struct, tn15 }
+#{ coral, exp, pp, tn15 }
+#{ exp, ht, struct, tn15 }
+#{ coral, exp, ht, tn15 }
+
+adjustmentSets(dag1_cexcl, exposure = "cover_turf", outcome = "bio_herb",
+               type = "minimal", effect = c("direct"))
+#{ exp, pp, struct, tn15 }
+#{ coral, exp, pp, tn15 }
+#{ exp, ht, struct, tn15 }
+#{ coral, exp, ht, tn15 }
+
+
+##h9-h10
+adjustmentSets(dag1_cexcl, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "direct"))
+#{ cover_turf, exp, pp, struct }
+#{ coral, cover_turf, exp, pp }
+
+adjustmentSets(dag1_cexcl, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "total"))
+#{ exp }
+
+
+adjustmentSets(dag1_cexcl, exposure = "tn15", outcome = "bio_herb",
+               type = "minimal", effect = c( "direct"))
+#{ cover_turf, exp, pp, struct }
+#{ coral, cover_turf, exp, pp }
+
+
+adjustmentSets(dag1_cexcl, exposure = "tn15", outcome = "bio_herb",
+               type = "minimal", effect = c( "total"))
+#{ exp }
+
+
+
+#notes: sp and bio_herb always have same adjustment sets, so can just use one to test in future models
+
+```
+
+
+#dag1_cexcl_size
+```{r}
+
+##h1-h2
+adjustmentSets(dag1_cexcl_size, exposure = "seabird", outcome = "ln15",
+               type = "minimal", effect = c("total", "direct"))
+#none needed --> now need { island_size } for all of these
+
+
+adjustmentSets(dag1_cexcl_size, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c("total" ))
+#none needed --> now need { island_size } for all of these
+
+adjustmentSets(dag1_cexcl_size, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c( "direct"))
+#none needed --> now need { island_size } for all of these
+
+
+##h3-h4
+adjustmentSets(dag1_cexcl_size, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("total"))
+#{ exp }
+
+
+adjustmentSets(dag1_cexcl_size, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("direct"))
+#{ exp, ht }
+
+
+adjustmentSets(dag1_cexcl_size, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("total"))
+#{ exp }
+
+
+adjustmentSets(dag1_cexcl_size, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("direct"))
+#{ exp }
+
+
+##h5-h6
+adjustmentSets(dag1_cexcl_size, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("total"))
+#{ cover_turf, exp, struct, tn15 }
+#{ coral, cover_turf, exp, tn15 }
+#{ exp, ht, tn15 }
+
+adjustmentSets(dag1_cexcl_size, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("direct"))
+#{ cover_turf, exp, struct, tn15 }
+#{ coral, cover_turf, exp, tn15 }
+#{ exp, ht, tn15 }
+
+
+
+##h7-h8
+adjustmentSets(dag1_cexcl_size, exposure = "cover_turf", outcome = "sp",
+               type = "minimal", effect = c("total"))
+#{ exp, pp, struct, tn15 }
+#{ coral, exp, pp, tn15 }
+#{ exp, ht, struct, tn15 }
+#{ coral, exp, ht, tn15 }
+
+adjustmentSets(dag1_cexcl_size, exposure = "cover_turf", outcome = "sp",
+               type = "minimal", effect = c("direct"))
+#{ exp, pp, struct, tn15 }
+#{ coral, exp, pp, tn15 }
+#{ exp, ht, struct, tn15 }
+#{ coral, exp, ht, tn15 }
+
+
+
+##h9-h10
+adjustmentSets(dag1_cexcl_size, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "direct"))
+#{ cover_turf, exp, pp, struct }
+#{ coral, cover_turf, exp, pp }
+
+adjustmentSets(dag1_cexcl_size, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "total"))
+#{ exp }
+
+
+
+#note - adding island size and rats ONLY affects turf and leaf n15 as response models. All else is identical****
+
+```
+
+#dag1_all_size
+```{r}
+
+##h1-h2
+adjustmentSets(dag1_all_size, exposure = "seabird", outcome = "ln15",
+               type = "minimal", effect = c("total"))
+#{ depth, fish, island_size, zone } -> so in model still just need island_size. all else adjusted for. 
+
+adjustmentSets(dag1_all_size, exposure = "seabird", outcome = "ln15",
+               type = "minimal", effect = c("direct"))
+#{ depth, fish, island_size, zone } -> so in model still just need island_size. all else adjusted for. 
+
+
+adjustmentSets(dag1_all_size, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c("total" ))
+#{ depth, fish, island_size, zone } -> so in model still just need island_size. all else adjusted for. 
+
+adjustmentSets(dag1_all_size, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c( "direct"))
+#{ depth, fish, island_size, zone } -> so in model still just need island_size. all else adjusted for. 
+
+
+##h3-h4
+adjustmentSets(dag1_all_size, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("total"))
+#{ depth, exp, fish, zone } -> so still just need exposure
+
+
+adjustmentSets(dag1_all_size, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("direct"))
+#{ depth, exp, fish, ht, zone } -> so still need exp and ht
+
+
+adjustmentSets(dag1_all_size, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("total"))
+#{ depth, exp, fish, zone } -> so still just need exposure
+
+
+adjustmentSets(dag1_all_size, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("direct"))
+#{ depth, exp, fish, ht, zone }  -> so still just need exposure
+
+
+##h5-h6
+adjustmentSets(dag1_all_size, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("total"))
+#{ cover_turf, depth, exp, fish, struct, tn15, zone } --> same as before = { cover_turf, exp, struct, tn15 }
+#{ coral, cover_turf, depth, exp, fish, tn15, zone } --> same as before = { coral, cover_turf, exp, tn15 }
+#{ depth, exp, fish, ht, tn15, zone } --> same as before = { exp, ht, tn15 }
+
+
+adjustmentSets(dag1_all_size, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("direct"))
+#{ cover_turf, depth, exp, fish, struct, tn15, zone } --> same as before = { cover_turf, exp, struct, tn15 }
+#{ coral, cover_turf, depth, exp, fish, tn15, zone } --> same as before = { coral, cover_turf, exp, tn15 }
+#{ depth, exp, fish, ht, tn15, zone } --> same as before = { exp, ht, tn15 }
+
+
+##h7-h8
+adjustmentSets(dag1_all_size, exposure = "cover_turf", outcome = "sp",
+               type = "minimal", effect = c("total"))
+#{ depth, exp, fish, pp, struct, tn15, zone } --> same as before = { exp, pp, struct, tn15 }
+#{ coral, depth, exp, fish, pp, tn15, zone } --> same as before = { coral, exp, pp, tn15 }
+#{ depth, exp, fish, ht, struct, tn15, zone }  --> same as before = { exp, ht, struct, tn15 }
+#{ coral, depth, exp, fish, ht, tn15, zone } --> same as before =  { coral, exp, ht, tn15 }
+
+
+
+adjustmentSets(dag1_all_size, exposure = "cover_turf", outcome = "sp",
+               type = "minimal", effect = c("direct"))
+#{ depth, exp, fish, pp, struct, tn15, zone } --> same as before = { exp, pp, struct, tn15 }
+#{ coral, depth, exp, fish, pp, tn15, zone } --> same as before = { coral, exp, pp, tn15 }
+#{ depth, exp, fish, ht, struct, tn15, zone }  --> same as before = { exp, ht, struct, tn15 }
+#{ coral, depth, exp, fish, ht, tn15, zone } --> same as before =  { coral, exp, ht, tn15 }
+
+
+
+##h9-h10
+adjustmentSets(dag1_all_size, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "direct"))
+#{ cover_turf, depth, exp, fish, pp, struct, zone } --> same as before = { cover_turf, exp, pp, struct }
+#{ coral, cover_turf, depth, exp, fish, pp, zone } --> same as before = { coral, cover_turf, exp, pp }
+
+
+adjustmentSets(dag1_all_size, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "total"))
+#{ depth, exp, fish, zone } -- same as before = { exp }
+
+
+
+#note - all identical to model without all these extra variables when make the models***
+
+```
+
+
+
+#dag2_cexcl_size
+```{r}
+
+##h1-h2
+adjustmentSets(dag2_cexcl_size, exposure = "seabird", outcome = "ln15",
+               type = "minimal", effect = c("total"))
+
+adjustmentSets(dag2_cexcl_size, exposure = "seabird", outcome = "ln15",
+               type = "minimal", effect = c("direct"))
+
+adjustmentSets(dag2_cexcl_size, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c("total" ))
+
+adjustmentSets(dag2_cexcl_size, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c( "direct"))
+
+#same, still need { island_size } for all of these
+
+
+##h3-h4
+adjustmentSets(dag2_cexcl_size, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("total"))
+#same: { exp }
+
+
+adjustmentSets(dag2_cexcl_size, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("direct"))
+#same: { exp, ht }
+
+
+adjustmentSets(dag2_cexcl_size, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("total"))
+#same: { exp }
+
+
+adjustmentSets(dag2_cexcl_size, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("direct"))
+#NOW NOT POSSIBLE*****
+
+
+##h5-h6
+adjustmentSets(dag2_cexcl_size, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("total"))
+#NOW JUST: { exp, tn15 } *****
+
+adjustmentSets(dag2_cexcl_size, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("direct"))
+#NOW JUST: { exp, tn15 } *****
+
+
+
+##h7-h8 - REVERSE
+adjustmentSets(dag2_cexcl_size, exposure = "sp", outcome = "cover_turf",
+               type = "minimal", effect = c("total"))
+#{ exp, pp, pred, struct, tn15 } ***** obviously different b/c different response/predictor
+
+adjustmentSets(dag2_cexcl_size, exposure = "sp", outcome = "cover_turf",
+               type = "minimal", effect = c("direct"))
+#NOT POSSIBLE - BECAUSE HERBIVORY IS SEPERATE***
+
+
+##h9-h10
+adjustmentSets(dag2_cexcl_size, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "direct"))
+#NOW JUST: { exp, pp } ******** but don't really care about this - from above not much direct effect. could still double-check it's consistent I guess. 
+
+adjustmentSets(dag2_cexcl_size, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "total"))
+#same: { exp }
+
+
+```
+
+
+#dag2_all_size
+```{r}
+
+##h1-h2
+adjustmentSets(dag2_all_size, exposure = "seabird", outcome = "ln15",
+               type = "minimal", effect = c("total"))
+
+adjustmentSets(dag2_all_size, exposure = "seabird", outcome = "ln15",
+               type = "minimal", effect = c("direct"))
+
+adjustmentSets(dag2_all_size, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c("total" ))
+
+adjustmentSets(dag2_all_size, exposure = "seabird", outcome = "tn15",
+               type = "minimal", effect = c( "direct"))
+
+#same, still need { depth, fish, island_size, zone }, which reduces to island_size for all of these
+
+
+##h3-h4
+adjustmentSets(dag2_all_size, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("total"))
+#same: { depth, exp, fish, zone } which reduces to { exp }
+
+
+adjustmentSets(dag2_all_size, exposure = "tn15", outcome = "pp",
+               type = "minimal", effect = c("direct"))
+#same: { depth, exp, fish, ht, zone } which reduces to { exp, ht }
+
+
+adjustmentSets(dag2_all_size, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("total"))
+#same: { depth, exp, fish, zone } which reduces to { exp }
+
+
+adjustmentSets(dag2_all_size, exposure = "tn15", outcome = "cover_turf",
+               type = "minimal", effect = c("direct"))
+#NOW NOT POSSIBLE (same as model with controls excluded)*****
+
+
+##h5-h6
+adjustmentSets(dag2_all_size, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("total"))
+#NOW JUST: { depth, exp, fish, tn15, zone } which reduces to { exp, tn15 } *****
+#so same as model with controls excluded
+
+adjustmentSets(dag2_all_size, exposure = "pp", outcome = "sp",
+               type = "minimal", effect = c("direct"))
+#NOW JUST: { depth, exp, fish, tn15, zone } which reduces to { exp, tn15 } *****
+#so same as model with controls excluded
+
+
+
+
+##h7-h8 - REVERSE
+adjustmentSets(dag2_all_size, exposure = "sp", outcome = "cover_turf",
+               type = "minimal", effect = c("total"))
+#{ depth, exp, fish, pp, pred, struct, tn15, zone }, which reduces to { exp, pp, pred, struct, tn15 } 
+#***** obviously different than dag1 b/c different response/predictor, but reduces to same as dag2 model with controls excluded
+
+adjustmentSets(dag2_all_size, exposure = "sp", outcome = "cover_turf",
+               type = "minimal", effect = c("direct"))
+#NOT POSSIBLE - BECAUSE HERBIVORY IS SEPERATE***
+
+
+##h9-h10
+adjustmentSets(dag2_all_size, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "direct"))
+#NOW JUST: { depth, exp, fish, pp, zone } which reduces to { exp, pp } ******** 
+#***** different than dag1, but reduces to same as dag2 model with controls excluded
+
+adjustmentSets(dag2_all_size, exposure = "tn15", outcome = "sp",
+               type = "minimal", effect = c( "total"))
+#{ depth, exp, fish, zone }, which reduces to { exp }. same same. 
+
+
+```
+
+
+##correlation plots:
+```{r}
+library(corrplot)
+library(rstatix)
+
+corr_dat<-
+  seychelles_all_site_level_dat%>%
+  select(mean_turf_n15, mean_turf_prod_mm_day, turf_cover, mean_herb_prod, mean_herb_bio)%>%
+    rename("turf nutrients" = mean_turf_n15,
+         "turf productivity" = mean_turf_prod_mm_day,
+         "turf cover" = turf_cover,
+         "herbivore productivity" = mean_herb_prod,
+         "herbivore biomass" = mean_herb_bio)
+
+
+corr_dat_log<-
+  seychelles_all_site_level_dat%>%
+  mutate(log_herb_bio = log(mean_herb_bio),
+         log_herb_prod = log(mean_herb_prod),
+         log_turf_cover = log(turf_cover))%>%
+  select(mean_turf_n15, mean_turf_prod_mm_day, log_turf_cover, log_herb_prod, log_herb_bio)%>%
+  rename("turf nutrients" = mean_turf_n15,
+         "turf productivity" = mean_turf_prod_mm_day,
+         "turf cover" = log_turf_cover,
+         "herbivore productivity" = log_herb_prod,
+         "herbivore biomass" = log_herb_bio)
+
+
+##corr plots
+#non-logged:----
+corrplot(cor(corr_dat), type = "upper")
+         #,addCoef.col = "gray", addCoefasPercent = FALSE)
+
+#logged
+corrplot(cor(corr_dat_log), type = "upper")
+         #,addCoef.col = "gray", addCoefasPercent = FALSE)
+
+
+#pdf(file = "../outputs/figures/corr_plot_log.pdf")
+corrplot(cor(corr_dat_log),
+     type="upper",
+     pch.cex = 0.8,
+     pch.col = "red",
+     tl.col="black",
+     tl.cex=1,
+     outline=TRUE)
+#dev.off()
+
+
+
+
+#pdf(file = "../outputs/figures/corr_plot_notlog.pdf")
+corrplot(cor(corr_dat),
+     type="upper",
+     pch.cex = 0.8,
+     pch.col = "red",
+     tl.col="black",
+     tl.cex=1,
+     outline=TRUE)
+#dev.off()
+
+```
+
+
+```
+
