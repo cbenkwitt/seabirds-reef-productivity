@@ -114,7 +114,7 @@ comb_plot<-
   plot_grid(world_map, sey_map, nrow = 2, rel_heights = c(.75, 2), align = "v")
 comb_plot
 
-#ggsave("../outputs/figures/study_sites_w_world_map.pdf", comb_plot, width = 7, height = 7)
+#ggsave("../outputs/figures/R/study_sites_w_world_map.pdf", comb_plot, width = 7, height = 7)
 
 ```
 

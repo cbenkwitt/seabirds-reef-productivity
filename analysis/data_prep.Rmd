@@ -193,7 +193,7 @@ turf_pp_cage_all_dat
 
 
 #write csv for other analyses-----
-#write.csv(turf_pp_cage_all_dat, "../data/seychelles_turf_pp_by_cage_dat.csv")
+#write.csv(turf_pp_cage_all_dat, "../data/seychelles_turf_pp_by_cage_dat.csv") 
 
 
 
@@ -249,7 +249,6 @@ trans_site_all_dat<-left_join(trans_all_dat, turf_site_dat_c,  by =c("Island", "
 trans_site_all_dat
 
 #write.csv(trans_site_all_dat, "../data/seychelles_uvc_dat.csv")
-
 
 ```
 

@@ -46,39 +46,16 @@ my_sf <- read_sf("../data/shape_files/syc_admbnda_adm0_nbs2010.shp")
 ```
 
 
-
-##calculate fetch
-```{r}
-#dmax is in meters based on github:
-sey_fetch_dat<-fetch_len_multi(pts = sb_dat_used_gps_sf, shoreline = my_sf, bearings = c(0, 22.5, 45,67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5), dmax = 650000, spread = 3)
-sey_fetch_dat
-
-```
-
-
-##calculate fetch
-```{r}
-#dmax is in meters based on github:
-sey_fetch_dat<-fetch_len_multi(pts = sb_dat_used_gps_sf, shoreline = my_sf, bearings = c(0, 22.5, 45,67.5, 90, 112.5, 135, 157.5, 180, 202.5, 225, 247.5, 270, 292.5, 315, 337.5), dmax = 650000, spread = 3)
-sey_fetch_dat
-
-```
-
-
 #load wind direction and speed data - combine with fetch data
 ```{r}
 
 #need to have wind speed (check), then wind direction - but this will just be used for fetch in that direction, so then we will have wind speed and fetch for each site (at each wind measurement). Fetch will change based on wind direction.
 
-#fetch data from above:
-sey_fetch_dat
-
-
 #load full wind data - from Seychelles
-dir_dat<-read.csv("../data/wind_data/SEYCHELLES AIRPORT_hrly_wind_dir_2012_2022.csv")
+dir_dat<-read.csv("../data/SEYCHELLES AIRPORT_hrly_wind_dir_2012_2022.csv")
 #NOTE: Data from 1st Jan 2012 to 31st December 2017 are from manned station and from 1st January 2018 to 31st Dec 2022 from AWOS 
 
-speed_dat<-read.csv("../data/wind_data//SEYCHELLES AIRPORT_hrly_wind_speed_2012_2022.csv")
+speed_dat<-read.csv("../data/SEYCHELLES AIRPORT_hrly_wind_speed_2012_2022.csv")
 #note: unit = KNOTS
 
 
@@ -101,13 +78,13 @@ wind_dat_long<-
 wind_dat_long
 #perfect!
 
+
 #determine how to bin/match fetch direction and wind directin:
 #from Graham et al 2015:Fetch values for each of our 21 reefs was calculated in 32 compass directions (each with an angular width of 11.25) 
 sey_fetch_dat_32<-fetch_len_multi(pts = sb_dat_used_gps_sf, shoreline = my_sf, bearings = c(0, 11.25, 22.5, 33.75, 45, 56.25, 67.5, 78.75,
                                                                                             90, 101.25, 112.5,123.75, 135, 146.25, 157.5, 168.75, 
                                                                                             180,191.25, 202.5,213.75,  225, 236.25, 247.5, 258.75, 
-                                                                                            270, 281.25, 292.5, 303.75, 315, 326.25, 337.5, 348.75), 
-                                  dmax = 650000, spread = 3)
+                                                                                            270, 281.25, 292.5, 303.75, 315, 326.25, 337.5, 348.75), dmax = 650000)
 sey_fetch_dat_32
 
 #write to csv because takes time to calculate:
@@ -115,8 +92,9 @@ sey_fetch_dat_32
 
 
 #add site names in there, and reload:
-fetch_dat<-read.csv("../data/sey_fetch_dat_32_edit.csv")
+fetch_dat<-read.csv("../data/sey_fetch_dat_32_wsite.csv")
 fetch_dat
+
 
 #now, for each wind direction, match it with the closest fetch direction:
 #so we did 11.25 for angular width, which means for each point, the closest wind directions are between point-5.625, and point + 5.625
@@ -197,34 +175,6 @@ wind_and_fetch_dat
 ```
 
 
-#now calculate wave height for each wind speed and direction plus fetch length for each island: TEST
-```{r}
-#built in function:----
-wave_energy()
-#Note: Resio et al. 2003 is the same reference and looks like same formulas used in perry 2015 and refs therein...
-#then, based on supp, wave energy (J) can be calculated from the same formula as used here, except density of water here is 998 kg/m^3 versus sea water is actually 1,030 kg/m^3. Formula = 1/16* water density * gravity acceleration (9.81 m/s^2) * wave height^2 from supp. here, formula = slightly different*
-
-wind_and_fetch_dat2<-
-  wind_and_fetch_dat%>%
-  rowwise()%>%
-  mutate(Aride_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Aride_1),
-         Cousine_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Cousine_1),
-         Felicite_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Felicite_1),
-         Fregate_H_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Fregate_H),
-         Fregate_L_wave_energy = wave_energy(wind = speed_ms, fetch = fetch_length_Fregate_L))
-
-wind_and_fetch_dat2
-
-mean(wind_and_fetch_dat2$Aride_wave_energy, na.rm=TRUE) #0.1845651
-mean(wind_and_fetch_dat2$Cousine_wave_energy, na.rm=TRUE) #1.921391
-mean(wind_and_fetch_dat2$Felicite_wave_energy, na.rm=TRUE) #0.6596461
-mean(wind_and_fetch_dat2$Fregate_H_wave_energy, na.rm=TRUE) #1.475874
-mean(wind_and_fetch_dat2$Fregate_L_wave_energy, na.rm=TRUE) #1.760153
-
-```
-
-
-
 #now calculate wave height and wave energy for each wind speed and direction plus fetch length for each island: MANUAL BASED ON REFERENCES
 #FIRST FOR ARIDE
 ```{r}
@@ -294,7 +244,7 @@ wind_and_fetch_dat_manual_Aride_10_year<-
   filter(!(yyyy == 2022 & mm > 11))
 wind_and_fetch_dat_manual_Aride_10_year
 
-mean(wind_and_fetch_dat_manual_Aride_10_year$wave_energy_Aride) #87.0444
+mean(wind_and_fetch_dat_manual_Aride_10_year$wave_energy_Aride)
 
 
 ```
@@ -361,7 +311,7 @@ wind_and_fetch_dat_manual_Cousine_10_year<-
   filter(!(yyyy == 2022 & mm > 11))
 wind_and_fetch_dat_manual_Cousine_10_year
 
-mean(wind_and_fetch_dat_manual_Cousine_10_year$wave_energy_Cousine) #483.2696
+mean(wind_and_fetch_dat_manual_Cousine_10_year$wave_energy_Cousine)
 
 
 ```
@@ -427,7 +377,7 @@ wind_and_fetch_dat_manual_Felicite_10_year<-
   filter(!(yyyy == 2022 & mm > 11))
 wind_and_fetch_dat_manual_Felicite_10_year
 
-mean(wind_and_fetch_dat_manual_Felicite_10_year$wave_energy_Felicite) #168.6095
+mean(wind_and_fetch_dat_manual_Felicite_10_year$wave_energy_Felicite)
 
 
 ```
@@ -496,7 +446,7 @@ wind_and_fetch_dat_manual_Fregate_H_10_year<-
   filter(!(yyyy == 2022 & mm > 11))
 wind_and_fetch_dat_manual_Fregate_H_10_year
 
-mean(wind_and_fetch_dat_manual_Fregate_H_10_year$wave_energy_Fregate_H) #394.161
+mean(wind_and_fetch_dat_manual_Fregate_H_10_year$wave_energy_Fregate_H) 
 
 
 ```
@@ -568,15 +518,13 @@ wind_and_fetch_dat_manual_Fregate_L_10_year<-
   filter(!(yyyy == 2022 & mm > 11))
 wind_and_fetch_dat_manual_Fregate_L_10_year
 
-mean(wind_and_fetch_dat_manual_Fregate_L_10_year$wave_energy_Fregate_L) #448.9753
-range(wind_and_fetch_dat_manual_Fregate_L_10_year$wave_energy_Fregate_L) #0.00 25605.34
-
+mean(wind_and_fetch_dat_manual_Fregate_L_10_year$wave_energy_Fregate_L)
 
 ```
 
 
 
-##calculate 10-year average, and average for our survey month (Nov 2022)
+##calculate 10-year average
 ```{r}
 
 #merge data back together:
@@ -586,70 +534,17 @@ all_wind_fetch_manual_data<-
     left_join(wind_and_fetch_dat_manual_Cousine3)%>%
   left_join(wind_and_fetch_dat_manual_Aride3)
 
-
-#study period: 
-all_wind_fetch_manual_data_filtered_nov<-
-  all_wind_fetch_manual_data%>%
-  filter((yyyy == 2022 & mm == 11))
-
-mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Fregate_L) #133.6945
-mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Fregate_H) #112.8798
-mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Cousine) #119.615
-mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Aride) #55.55186
-mean(all_wind_fetch_manual_data_filtered_nov$wave_energy_Felicite) #39.12668
-
 #10-year average
 all_wind_fetch_manual_data_10year<-
   all_wind_fetch_manual_data%>%
  filter(!(yyyy == 2012 & mm <=10))%>%
   filter(!(yyyy == 2022 & mm > 11))
 
-mean(all_wind_fetch_manual_data_10year$wave_energy_Aride) #87.0444
-mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_L) #448.9753
-mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_H) #394.161
-mean(all_wind_fetch_manual_data_10year$wave_energy_Felicite) #168.6095
-mean(all_wind_fetch_manual_data_10year$wave_energy_Cousine) #483.2696
+mean(all_wind_fetch_manual_data_10year$wave_energy_Aride) #140.1754
+mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_L) #469.6102
+mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_H) #378.8382
+mean(all_wind_fetch_manual_data_10year$wave_energy_Felicite) #168.3294
+mean(all_wind_fetch_manual_data_10year$wave_energy_Cousine) #483.2262
 
 
 ```
-
-
-##compare to wave_energy function calculations above:
-```{r}
-
-#wave_energy calculations:
-wind_and_fetch_dat2_10year<-
-  wind_and_fetch_dat2%>%
-   filter(!(yyyy == 2012 & mm <=10))%>%
-  filter(!(yyyy == 2022 & mm > 11))
-
-mean(wind_and_fetch_dat2_10year$Aride_wave_energy, na.rm=TRUE) #0.1841504
-mean(wind_and_fetch_dat2_10year$Fregate_L_wave_energy, na.rm=TRUE) #1.553321
-mean(wind_and_fetch_dat2_10year$Fregate_H_wave_energy, na.rm=TRUE) #1.386125
-mean(wind_and_fetch_dat2_10year$Felicite_wave_energy, na.rm=TRUE) #0.5233581
-mean(wind_and_fetch_dat2_10year$Cousine_wave_energy, na.rm=TRUE) #1.708589
-
-#from help for wave_energy function: returns Wave energy flux, in kW/m.[wave energy flux (power per meter of wave crest)]
-
-#manual calculations:
-all_wind_fetch_manual_data_10year<-
-  all_wind_fetch_manual_data%>%
- filter(!(yyyy == 2012 & mm <=10))%>%
-  filter(!(yyyy == 2022 & mm > 11))
-
-mean(all_wind_fetch_manual_data_10year$wave_energy_Aride) #87.0444
-mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_L) #448.9753
-mean(all_wind_fetch_manual_data_10year$wave_energy_Fregate_H) #394.161
-mean(all_wind_fetch_manual_data_10year$wave_energy_Felicite) #168.6095
-mean(all_wind_fetch_manual_data_10year$wave_energy_Cousine) #483.2696
-
-#from reference for formula: average wave exposure (J m−3)
-
-#obviously different values, because different units...but proportional difference is the same??:
-(448.9753-87.0444)/((87.0444+ 448.9753)/2)  #1.350439
-(1.553321-0.1841504)/((0.1841504+ 1.553321)/2) #1.57605
-#close % differences at least as  atest for Aride versus Fregate L
-
-
-```
-

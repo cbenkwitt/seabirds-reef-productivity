@@ -78,7 +78,7 @@ plot(turf_pp_nutrients_direct_brms, ask = FALSE) #looks good
 
 hypothesis(turf_pp_nutrients_direct_brms, "turf_n15_c>0") 
 #hypothesis              est      error     lower     upper       evidence ratio        posterior probability
-#(turf_n15_c) > 0        0.04	      0.03	    0	        0.09	        14.75	                0.94	  
+#(turf_n15_c) > 0       0.04	    0.03	    0	        0.09	        15.56               	0.94	
 
 
 #extract some values:------
@@ -86,7 +86,7 @@ turf_pp_nutrients_direct_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
 #b_log_seabird      lower       upper       width   point     interval
-# 0.04407482  	-0.01498565	  0.1029343			  0.95	median	hdi
+# 0.04444214    	-0.01229976   0.09944944			  0.95	median	hdi
 #so for each one unit increase in turf n15, turf growth increases by 0.04 mm/day
 
 
@@ -105,7 +105,7 @@ plot(turf_pp_nutrients_total_brms, ask = FALSE) #looks good
 
 hypothesis(turf_pp_nutrients_total_brms, "turf_n15_c>0") 
 #hypothesis              est      error     lower     upper       evidence ratio        posterior probability
-#(turf_n15_c) > 0       0.05      	0.03    	0.01    	0.1	        31.79	                0.97	*
+#(turf_n15_c) > 0       0.05      	0.03    	0.01    	0.1	        31.92	                0.97	*
 
 
 #extract some values:------
@@ -113,7 +113,7 @@ turf_pp_nutrients_total_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
 #b_log_seabird      lower       upper       width   point     interval
-# 0.05556064	-0.0004065733	0.1137147	    0.95    	median	hdi
+# 0.05428809	-0.0006076354	0.1118286	    0.95    	median	hdi
 #so for each one unit increase in turf n15, turf growth increases by 0.05 mm/day
 
 
@@ -149,6 +149,7 @@ turf_pp_nutrients_total_brms %>%
   stat_halfeye(point_interval=median_hdi, .width=c(.95, .75), fatten_point = 2, slab_alpha = 0.6) +
   scale_fill_manual(values = alpha(c("#EE7733"),0.3))+
   geom_vline(xintercept = 0, linetype = "dashed") +
+    scale_x_continuous(breaks = c(0.0, 0.1))+
   theme_bw() + 
   xlab("")+
   ylab("")+
@@ -193,8 +194,7 @@ turf.pp.n15.plot.with.inset
 
 
 # Can save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/figure3_turf_productivity_by_n15.png", 
-#      plot = turf.pp.n15.plot.with.inset,  width = 11,       height = 7.5,   units = "cm",     dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_3a.png",      plot = turf.pp.n15.plot.with.inset,  width = 11,       height = 7.5,   units = "cm",     dpi = 300)
 
 
 ```
@@ -245,7 +245,7 @@ plot(prop_turf_pp_nutrients_brms, ask = FALSE) #looks good
 
 hypothesis(prop_turf_pp_nutrients_brms, "turf_n15_c>0") 
 #hypothesis              est      error     lower     upper       evidence ratio        posterior probability
-# (turf_n15_c) > 0        0.03	     0.02	    0.01	0.06	          46.06                 	0.98	*
+# (turf_n15_c) > 0        0.03	     0.02	    0.01	0.06	          42.48                 	0.98	*
 #nearly identical to raw data model
 
 
@@ -254,85 +254,8 @@ prop_turf_pp_nutrients_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdci(b_turf_n15_c)
 #b_log_seabird      lower       upper       width   point     interval
-#0.03454716	      0.001523137	  0.06772498				  0.95	median	hdi
-#.034 increase in proportional growth
-
-
-
-###plot it------
-#plot partialized residuals-----
-me_n15_prop<-conditional_effects(prop_turf_pp_nutrients_brms, prob = .75, effects = 'turf_n15_c', plot = FALSE)[[1]]
-
-#extract partialized residuals
-p_n15_prop<-partialize(prop_turf_pp_nutrients_brms, vars= "turf_n15_c",  data = turf_pp_cage_all_dat_prop_c)
-
-
-#get data for un-centering:
-mean(turf_pp_cage_all_dat_prop_c$Turf_N15, na.rm=TRUE) #4.67381
-
-me_n15_prop_unscale<-
-  me_n15_prop%>%
-  mutate(Turf_N15 = (turf_n15_c  + 4.67381 )) #+ mean
-
-
-
-##correct colour plots - combine and save-----
-turf_pp_prop_post_plot<-
-prop_turf_pp_nutrients_brms %>%
-  spread_draws(b_turf_n15_c) %>%
-  ggplot(aes(y = 0, x = b_turf_n15_c, fill = "#EE7733")) +
-  stat_halfeye(point_interval=median_hdi, .width=c(.95, .75), fatten_point = 2, slab_alpha = 0.6) +
-  scale_fill_manual(values = alpha(c("#EE7733"),0.3))+
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  theme_bw() + 
-  xlab("")+
-  ylab("")+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(), 
-        legend.position = "none",  
-        rect = element_rect(fill = "transparent"),  
-        plot.background = element_rect(fill = "transparent", color = NA),
-       # text=element_text(size=16,  family="sans"),
-          axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-turf_pp_prop_post_plot
-
-
-
-turf_pp_n15_prop_part_plot<-
-p_n15_prop %>%
-  ggplot(aes(x = Turf_N15, y = Prop_turf_growth_day)) +
-     #  geom_jitter(color = "#EE7733", fill = "#EE7733", alpha = 0.4, size = 3, width=.05, height = 0) + #, size = .8  
-     geom_point(color = "#EE7733", fill = "#EE7733", alpha = 0.4, size = 3) + #, size = .8  width=.07, height = 0,
-    geom_ribbon(data = me_n15_prop_unscale, aes(ymin = lower__, ymax=upper__), alpha = .2, fill = "#EE7733")+
-    geom_line(data = me_n15_prop_unscale, aes(x = Turf_N15, y = estimate__), lwd = 1.2, colour = "#EE7733") + ##scale line thickness to PP - >0.9 = 1.2 (original thickness)
-xlab(expression(paste("Turf ", delta^15, "N"))) + 
-  ylab(bquote(Turf~productivity~(proportional~growth~day^-1)))+
-  theme_bw()+
-    guides(size = "none", colour = "none",  fill = guide_legend(title="Confidence level")) + 
-    theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(),
-    #            text = element_text(size = 24),
-        legend.position='none')
-turf_pp_n15_prop_part_plot
-
-##combine and save---------
-##make inset plots, then combine and save:
-turf.pp.n15.plot.with.inset.prop <-
-  ggdraw() +
-  draw_plot(turf_pp_n15_prop_part_plot) +
-  draw_plot(turf_pp_prop_post_plot, x = 0.1, y = .64, width = .35, height = .35)
-turf.pp.n15.plot.with.inset.prop
-
-
-# Can save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/figure3_turf_productivity_by_n15.png", 
-#      plot = turf.pp.n15.plot.with.inset,  width = 11,       height = 7.5,   units = "cm",     dpi = 300)
-
-
-
+#0.03389067 	0.0002087316	0.06611143				  0.95	median	hdi
+#.03 increase in proportional growth
 
 
 
@@ -366,7 +289,7 @@ turf_pp_nutrients_total_brms %>%
 turf_pp_post_plot_alt
 
 #Save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/turf_pp_post_plot_alt.pdf", plot = turf_pp_post_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_6b.pdf", plot = turf_pp_post_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
 ```
 
 

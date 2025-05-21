@@ -229,7 +229,7 @@ wind_dat_long%>%
 wind_rose_plot
 
 
-#ggsave(filename = "../outputs/figures/wind_rose_plot.png",  plot = wind_rose_plot, width = 6,  height = 8,units = "in",dpi = 300)
+#ggsave(filename = "../outputs/figures/final_figures/Fig_S3.png",  plot = wind_rose_plot, width = 6,  height = 8,units = "in",dpi = 300)
 
 
 ```

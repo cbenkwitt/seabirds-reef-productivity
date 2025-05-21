@@ -148,13 +148,13 @@ benth_scores_meta_rotate<-
 ord.fit.benth.rotate<-envfit(benth_dat_nmds.rotate~no_turf_removal_bio + turf_removal_bio  + no_turf_removal_prod + turf_removal_prod  + Exposure_J_m3 + mean_turf_prod_mm_day + mean_turf_n15 + structure, data = benth_scores_meta_rotate)
 
 ord.fit.benth.rotate 
-#no_turf_removal_bio    0.47254 -0.88131 0.0220  0.831    
+#no_turf_removal_bio    0.47254 -0.88131 0.0220  0.824    
 #turf_removal_bio       0.33103 -0.94362 0.2574  0.073 .  
-#no_turf_removal_prod   0.86442 -0.50277 0.0748  0.562    
-#turf_removal_prod      0.23108 -0.97293 0.1130  0.369    
-#Exposure_J_m3          0.86818  0.49626 0.6876  0.001 ***
-#mean_turf_prod_mm_day  0.93316 -0.35946 0.1240  0.294    
-#mean_turf_n15          1.00000  0.00000 0.5444  0.002 ** 
+#no_turf_removal_prod   0.86442 -0.50277 0.0748  0.544    
+#turf_removal_prod      0.23108 -0.97293 0.1130  0.404    
+#Exposure_J_m3          0.84745  0.53087 0.6529  0.001 ***
+#mean_turf_prod_mm_day  0.93316 -0.35946 0.1240  0.344    
+#mean_turf_n15          1.00000  0.00000 0.5444  0.003 ** 
 #structure              0.57952  0.81496 0.3389  0.027 *  
 
 #biomass maybe more important because larger fish contribute more to biomass, and also more to turf removal! Whereas smaller fish contribue more to secondary productivity, but not as much to turf removal. (non-linear scaling of bites and grazing rates)
@@ -259,21 +259,7 @@ supp_nmds_fig_all<-plot_grid(supp_nmds_fig, bottom_row, nrow = 2 )
 supp_nmds_fig_all
 
 
-ggsave(filename = "../outputs/figures/supp_nmds_fig_all.png", 
-       plot = supp_nmds_fig_all,
-       width = 25, 
-      height = 22,
-      units = "cm",
-       dpi = 300)
-
-
-
-ggsave(filename = "../outputs/figures/supp_nmds_fig_all.pdf", 
-      plot = supp_nmds_fig_all,
-       width = 25, 
-       height = 22,
-      units = "cm",
-       dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_s5_nmds.pdf",   plot = supp_nmds_fig_all,   width = 25,   height = 22, units = "cm",    dpi = 300)
 
 
 ```

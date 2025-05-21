@@ -1,0 +1,52 @@
+---
+title: "figure_s4"
+author: "CEB"
+date: '2025-05-21'
+output: html_document
+---
+
+
+#load data and packages:
+```{r}
+library(tidyverse)
+library(corrplot)
+library(rstatix)
+
+seychelles_all_site_level_dat<-read.csv("../data/seychelles_all_site_level_dat.csv", stringsAsFactors = TRUE)
+
+```
+
+
+##correlation plots:
+```{r}
+corr_dat_log<-
+  seychelles_all_site_level_dat%>%
+  mutate(log_herb_bio = log(mean_herb_bio),
+         log_herb_prod = log(mean_herb_prod),
+         log_turf_cover = log(turf_cover))%>%
+  select(mean_turf_n15, mean_turf_prod_mm_day, log_turf_cover, log_herb_prod, log_herb_bio)%>%
+  rename("turf nutrients" = mean_turf_n15,
+         "turf productivity" = mean_turf_prod_mm_day,
+         "turf cover" = log_turf_cover,
+         "herbivore productivity" = log_herb_prod,
+         "herbivore biomass" = log_herb_bio)
+
+
+##corr plots
+corrplot(cor(corr_dat_log), type = "upper")
+         #,addCoef.col = "gray", addCoefasPercent = FALSE)
+
+
+#pdf(file = "../outputs/figures/corr_plot_log.pdf")
+corrplot(cor(corr_dat_log),
+     type="upper",
+     pch.cex = 0.8,
+     pch.col = "red",
+     tl.col="black",
+     tl.cex=1,
+     outline=TRUE)
+#dev.off()
+
+
+```
+

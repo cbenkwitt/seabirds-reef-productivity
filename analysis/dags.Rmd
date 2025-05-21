@@ -42,29 +42,8 @@ theme_set(theme_casey)
 
 #load data
 ```{r}
-
-#For nutrient analysis:
-seychelles_leaf_n15_dat<-read.csv("../data/seychelles_leaf_n15_dat.csv", stringsAsFactors = TRUE)  
-seychelles_turf_n15_dat<-read.csv("../data/seychelles_turf_n15_dat.csv", stringsAsFactors = TRUE)  
-
-seychelles_turf_n15_dat_2<-
-  seychelles_turf_n15_dat%>%
-  rename(turf_n15 = N15)
-
-
-seychelles_leaf_n15_dat_2<-
-  seychelles_leaf_n15_dat%>%
-  rename(leaf_n15 = N15)
-
-#For turf productivity analysis:
-seychelles_turf_pp_by_cage_dat<-read.csv("../data/seychelles_turf_pp_by_cage_dat.csv", stringsAsFactors = TRUE)  
-
-#For turf cover analysis, herbivore biomass, productivity analysis (all transect-level uvc data):
-seychelles_uvc_dat<-read.csv("../data/seychelles_uvc_dat.csv", stringsAsFactors = TRUE)  
-
-#for site-level data:
+#site-level:
 seychelles_all_site_level_dat<-read.csv("../data/seychelles_all_site_level_dat.csv", stringsAsFactors = TRUE)
-
 
 ```
 
@@ -87,8 +66,6 @@ dag_dat<-
          pred = mean_pred_bio,
          struct = mean_structure)%>%
   dplyr::select(c(exp, seabird, ln15, tn15, pp, ht, sp, bio_herb, cover_turf, coral, pred, struct))
-  
-
 dag_dat
 ```
 
@@ -377,7 +354,7 @@ cat("Shipley's C =", C_stat, "\nDegrees of freedom =", df, "\np-value =", p_valu
 #tests: dag 2 -----
 dag_ss2 <- localTests(dag2_cexcl, data = dag_dat)
 dag_ss2 
-#looks pretty good - just leaf n15 not be independent. could add connection of leaf n15 with turf n15. likely connected by island size?
+#looks pretty good - just leaf n15 may not be independent. could add connection of leaf n15 with turf n15. likely connected by island size?
 
 #calculate shipley's C:
 C_stat2 <- -2 * sum(log(dag_ss2$p))
@@ -1205,70 +1182,4 @@ adjustmentSets(dag2_all_size, exposure = "tn15", outcome = "sp",
 
 ```
 
-
-##correlation plots:
-```{r}
-library(corrplot)
-library(rstatix)
-
-corr_dat<-
-  seychelles_all_site_level_dat%>%
-  select(mean_turf_n15, mean_turf_prod_mm_day, turf_cover, mean_herb_prod, mean_herb_bio)%>%
-    rename("turf nutrients" = mean_turf_n15,
-         "turf productivity" = mean_turf_prod_mm_day,
-         "turf cover" = turf_cover,
-         "herbivore productivity" = mean_herb_prod,
-         "herbivore biomass" = mean_herb_bio)
-
-
-corr_dat_log<-
-  seychelles_all_site_level_dat%>%
-  mutate(log_herb_bio = log(mean_herb_bio),
-         log_herb_prod = log(mean_herb_prod),
-         log_turf_cover = log(turf_cover))%>%
-  select(mean_turf_n15, mean_turf_prod_mm_day, log_turf_cover, log_herb_prod, log_herb_bio)%>%
-  rename("turf nutrients" = mean_turf_n15,
-         "turf productivity" = mean_turf_prod_mm_day,
-         "turf cover" = log_turf_cover,
-         "herbivore productivity" = log_herb_prod,
-         "herbivore biomass" = log_herb_bio)
-
-
-##corr plots
-#non-logged:----
-corrplot(cor(corr_dat), type = "upper")
-         #,addCoef.col = "gray", addCoefasPercent = FALSE)
-
-#logged
-corrplot(cor(corr_dat_log), type = "upper")
-         #,addCoef.col = "gray", addCoefasPercent = FALSE)
-
-
-#pdf(file = "../outputs/figures/corr_plot_log.pdf")
-corrplot(cor(corr_dat_log),
-     type="upper",
-     pch.cex = 0.8,
-     pch.col = "red",
-     tl.col="black",
-     tl.cex=1,
-     outline=TRUE)
-#dev.off()
-
-
-
-
-#pdf(file = "../outputs/figures/corr_plot_notlog.pdf")
-corrplot(cor(corr_dat),
-     type="upper",
-     pch.cex = 0.8,
-     pch.col = "red",
-     tl.col="black",
-     tl.cex=1,
-     outline=TRUE)
-#dev.off()
-
-```
-
-
-```
 

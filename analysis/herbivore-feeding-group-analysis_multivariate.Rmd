@@ -49,7 +49,7 @@ herbivore_fg_dat<-read.csv("../data/seychelles_herbivore_biomass_productivity_by
 
 
 herbivore_fg_dat_how<-
-  herbivore_fg_f_dat%>%
+  herbivore_fg_dat%>%
   group_by(Island, Site, Transect, FG.how)%>%
   summarize(biomass_kg_ha = sum(biomass_kg_ha),
             productivity_kg_ha_day = sum(productivity_kg_ha_day))
@@ -73,8 +73,6 @@ herbivore_fg_how_turf_dat
 
 ###set up:----
 ```{r}
-library(vegan)
-
 
 ##BIOMASS---------
 #fg how (combine cropper and concealed cropper):---
@@ -167,12 +165,12 @@ herb_how_bio_dat_scores_meta_rotate<-
 sey_herb_how_bio_nmds.rotate.ord.fit<-envfit(sey_herb_how_bio_nmds.rotate~ turf   + structure +  Exposure_J_m3 + mean_turf_prod_mm_day  + mean_turf_n15  + pred_biomass_kg_ha, data = herb_how_bio_dat_scores_meta_rotate)
 sey_herb_how_bio_nmds.rotate.ord.fit 
 #                         NMDS1    NMDS2     r2 Pr(>r)    
-#turf                   0.53747  0.84329 0.1181  0.349   
-#structure              0.91380  0.40617 0.2573  0.081 . 
-#Exposure_J_m3          0.87481  0.48447 0.1135  0.377   
-#mean_turf_prod_mm_day  0.95491 -0.29688 0.5232  0.004 **
-#mean_turf_n15          1.00000  0.00000 0.3097  0.056 . 
-#pred_biomass_kg_ha     0.28121 -0.95964 0.1495  0.241 
+#turf                   0.53747  0.84329 0.1181  0.334   
+#structure              0.91380  0.40617 0.2573  0.097 . 
+#Exposure_J_m3          0.95114  0.30877 0.1236  0.309   
+#mean_turf_prod_mm_day  0.95491 -0.29688 0.5232  0.002 **
+#mean_turf_n15          1.00000  0.00000 0.3097  0.046 * 
+#pred_biomass_kg_ha     0.28121 -0.95964 0.1495  0.258  
 
 #strongest corrs = turf productivity (0.52), turf n15 (0.31), and structure (0.26)
 
@@ -295,12 +293,12 @@ herb_how_prod_dat_scores_meta_rotate<-
 sey_herb_how_prod_nmds.rotate.ord.fit<-envfit(sey_herb_how_prod_nmds.rotate~ turf   + structure +  Exposure_J_m3 + mean_turf_prod_mm_day  + mean_turf_n15  + pred_biomass_kg_ha, data = herb_how_prod_dat_scores_meta_rotate)
 sey_herb_how_prod_nmds.rotate.ord.fit 
 #                         NMDS1    NMDS2     r2 Pr(>r)    
-#turf                   0.15633 -0.98770 0.0022  0.984   
-#structure              0.99907  0.04302 0.4716  0.004 **
-#Exposure_J_m3          0.65663  0.75421 0.1395  0.295   
-#mean_turf_prod_mm_day  0.79096 -0.61187 0.3580  0.021 * 
-#mean_turf_n15          1.00000  0.00000 0.2616  0.070 . 
-#pred_biomass_kg_ha    -0.86062 -0.50924 0.0763  0.520   
+#turf                   0.15625 -0.98772 0.0022  0.977   
+#structure              0.99907  0.04302 0.4716  0.007 **
+#Exposure_J_m3          0.78804  0.61562 0.0989  0.424   
+#mean_turf_prod_mm_day  0.79096 -0.61187 0.3580  0.024 * 
+#mean_turf_n15          1.00000  0.00000 0.2616  0.085 . 
+#pred_biomass_kg_ha    -0.86062 -0.50924 0.0763  0.522   
 
 #strongest corrs = turf productivity (.36), turf n15 (.26), and structure (.47)
 #pretty similar to biomass, but structure more important
@@ -378,29 +376,12 @@ herb_prod_nmds_plot
 
 ```
 
-##combine plots and save:
+##combine plots:
 ```{r}
 supp_nmds_fig<-plot_grid(herb_bio_nmds_plot, herb_prod_nmds_plot) #, labels = c("(a) Turf productivity", "(b) Turf cover"),
                #label_size = 12, label_fontface = "plain", # hjust = -1,   vjust = 1,
               #  scale = .95)
 supp_nmds_fig
-
-
-ggsave(filename = "../outputs/figures/supp_nmds_fig.png", 
-       plot = supp_nmds_fig,
-       width = 22, 
-      height = 10,
-      units = "cm",
-       dpi = 300)
-
-
-
-ggsave(filename = "../outputs/figures/supp_nmds_fig.pdf", 
-      plot = supp_nmds_fig,
-       width = 25, 
-       height = 10,
-      units = "cm",
-       dpi = 300)
 
 ```
 

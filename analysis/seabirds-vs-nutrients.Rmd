@@ -399,15 +399,6 @@ turf.plot.with.inset
 figure2<-plot_grid(leaf.plot.with.inset, turf.plot.with.inset)
 figure2
 
-# Can save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/figure2.png", 
-#       plot = figure2,
-#       width = 20, 
-#       height = 10,
-#      units = "cm",
-#     dpi = 300)
-
-
 ```
 
 
@@ -612,47 +603,9 @@ figure2_size_exp<-plot_grid(leaf.plot.with.inset_size_exp, turf.plot.with.inset_
 figure2_size_exp
 
 # Can save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/figure2_size.png", 
-#       plot = figure2_size,
-#       width = 20, 
-#       height = 10,      units = "cm",     dpi = 300)
-
-
-
-#ggsave(filename = "../outputs/figures/figure2_size_exp.png",        plot = figure2_size_exp,      width = 20,     height = 10,      units = "cm",     dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_2bc.png",        plot = figure2_size_exp,      width = 20,     height = 10,      units = "cm",     dpi = 300)
 
 ```
-
-
-##re-plot for final figure (because alternative dag doesn't change this part)
-```{r}
-
-turf_post_plot_alt<-
-sb_turf_n15_brms %>%
-  spread_draws(b_log_seabird_c) %>%
-  ggplot(aes(y = 0, x = b_log_seabird_c, fill = after_stat(x < 0))) +
-  stat_halfeye(point_interval=median_hdi, .width=c(.95, .75),  slab_alpha = 0.6, fatten_point=1) +
-  scale_fill_manual(values = alpha(c("#d0e2af" ,"#e89c81"),1)) +#PNW color palette
-  geom_vline(xintercept = 0, linetype = "dashed", lwd = .5) +
-  theme_bw() + 
-  xlab("")+
-  ylab("")+
-  #ggtitle("effect of seabird biomass on turf nutrients")+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(), 
-        legend.position = "none",  
-        rect = element_rect(fill = "transparent"),  
-        plot.background = element_rect(fill = "transparent", color = NA),
-        text=element_text(size=10,  family="sans"),
-          axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-turf_post_plot_alt
-
-#Save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/fig_turf_n_seabird_post_plot_alt.pdf", plot = turf_post_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
-```
-
 
 
 ##re-plot for final figure (because alternative dag doesn't change this part) - with size
@@ -681,13 +634,17 @@ sb_turf_n15_size_brms %>%
 turf_post_plot_alt_size
 
 #Save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/fig_turf_n_seabird_post_plot_alt_size.pdf", plot = turf_post_plot_alt_size,  width = 8,   height = 5,  units = "cm", dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_6a.pdf", plot = turf_post_plot_alt_size,  width = 8,   height = 5,  units = "cm", dpi = 300)
 ```
 
 
 
 #plot of seabird biomass
 ```{r}
+
+#seabird data
+sey_sb_dat<-read.csv("../data/seychelles_seabird_biomass.csv", stringsAsFactors = TRUE) 
+str(sey_sb_dat)
 
 sey_sb_dat_for_plot<-
   sey_sb_dat%>%
@@ -729,12 +686,7 @@ theme(axis.title.y =element_blank(),
 sey_sb_plot
 
 
-#ggsave(filename = "../outputs/figures/figure2_seabird_bubble_plot.jpg", 
-#      plot = sey_sb_plot,
-#      width = 10, 
-#       height = 4,
-#       units = "cm",
-#       dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_2a.jpg",       plot = sey_sb_plot,     width = 10,        height = 4,     units = "cm",      dpi = 300)
 
 
 ```

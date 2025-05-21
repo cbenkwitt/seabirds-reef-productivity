@@ -87,14 +87,14 @@ pp_check(herb_prod_turf_pp_brms) #looks okay
 plot(herb_prod_turf_pp_brms, ask = FALSE) #looks good
 
 hypothesis(herb_prod_turf_pp_brms, "turf_productivity_c>0") 
-#(turf_productivit... > 0	      4.22	    16.4	  -19.03    	25.46	    2.31    	0.7	
-#positive effect, but wide error so 0.7 PP
+#(turf_productivit... > 0	     4.13	    14.58	    -18.34  	25.15 	2.48  	0.71	
+#positive effect, but wide error so 0.71 PP
 
 ##extract effects-----
 herb_prod_turf_pp_brms %>%
   spread_draws(b_turf_productivity_c) %>%
   median_hdci(b_turf_productivity_c/10)
-#0.4445617	-3.235387	3.358798	
+#0.4493213	-2.932126	3.203497		
 
 #because Y is log-transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
 #but estimates are crazy because increase in turf growth by 1 mm/day is super high, so divide by 10 to make it .1 mm/day increase:
@@ -102,9 +102,9 @@ herb_prod_turf_pp_brms %>%
 herb_prod_turf_pp_brms %>%
   spread_draws(b_turf_productivity_c) %>%
   median_hdi(exp(b_turf_productivity_c/10))
-#1.559806	2.026816e-06	12.76673	0.95	  0.95	median	hdi
+#1.567248	0.000007772796	12.3711		0.95	  0.95	median	hdi
 
-#so each .1 mm/day increase in turf growth rate, herbivore productivity increases by a factor of 1.55 
+#so each .1 mm/day increase in turf growth rate, herbivore productivity increases by a factor of 1.57 
 #Previous result was 1.55 at 0.81 PP, so similar effect size but wider errors here (so lower PP)
 
 
@@ -117,31 +117,32 @@ herb_prod_turf_pp_brms %>%
 #adjustment set is the same as above, so extract effects from that model: 
 
 hypothesis(herb_prod_turf_pp_brms, "turf_prop_c>0") 
-#-0.94	1.33	-3.12	1.22	0.29	0.22	
+#-0.92	1.34	-3.11	1.3	0.31	0.24		
 #if anything, evidence for NEGATIVE effect if turf cover on herbivore growth....
 
 
 herb_prod_turf_pp_brms %>%
   spread_draws(b_turf_prop_c) %>%
   median_hdi(b_turf_prop_c/10)
+#-0.09406155	-0.3494816	0.1788058	
 
 #because Y is log-transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
 #but estimates are crazy because increase in proportional turf by 1 unit is super high, so divide to make it .1 proportional increase (so 10% increase):
 herb_prod_turf_pp_brms %>%
   spread_draws(b_turf_prop_c) %>%
   median_hdi(exp(b_turf_prop_c/10))
-#0.9103908	0.67905	1.161185		0.95	median	hdi
+#0.9102267	0.6845967	1.174032		0.95	median	hdi
 
 #so each 10% increase in turf cover results in decrease in herbivore biomass by a factor of 0.91. Or:
-1-0.9103908 #0.0896092: 8.96% decrease
-1-0.67905 #0.32095: 32.10% decrease
-1.161185-1 #0.161185: 16.12% increase
+1-0.9102267 #0.0897733: 8.98% decrease
+1-0.6845967 #0.3154033: 31.54% decrease
+1.174032-1 #0.174032: 17.40% increase
 #very similar estimates as original model*
 
 ```
 
 
-#Hypothesis H6 - effects of turf pp on herbivore bimass:
+#Hypothesis H6 - effects of turf pp on herbivore biomass:
 ```{r}
 ##same models as above for herbivore productivity: 
 
@@ -159,7 +160,7 @@ pp_check(herb_bio_turf_pp_brms) #looks good
 plot(herb_bio_turf_pp_brms, ask = FALSE) #looks good
 
 hypothesis(herb_bio_turf_pp_brms, "turf_productivity_c>0") 
-#5.97	21.44	-25.87	36.88	2.08	0.68
+#6.97	20.68	-23.69	37.84	2.37	0.7	
 #positive effect, but fairly low PP because wide errors
 
 
@@ -167,16 +168,16 @@ hypothesis(herb_bio_turf_pp_brms, "turf_productivity_c>0")
 herb_bio_turf_pp_brms %>%
   spread_draws(b_turf_productivity_c) %>%
   median_hdi(b_turf_productivity_c/10)
-#0.6157091	-3.859791	4.803158	
+#0.664829	-3.761826	4.789922	
 
 #because Y is log-transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
 #but estimates are crazy because increase in turf growth by 1 mm/day is super high, so divide by 10 to make it .1 mm/day increase:
 herb_bio_turf_pp_brms %>%
   spread_draws(b_turf_productivity_c) %>%
   median_hdi(exp(b_turf_productivity_c/10))
-#1.850969	6.252103e-11	40.01519				0.95	  0.95	median	hdi
+#1.944158	0.0000003678497	44.00293				0.95	  0.95	median	hdi
 
-#so each .1 mm/day increase in turf growth rate, herbivore productivity increases by a factor of 1.85. 
+#so each .1 mm/day increase in turf growth rate, herbivore productivity increases by a factor of 1.94. 
 #Previous result was 1.95 at 0.76 PP, so slightly lower effect size and wider errors here (so lower PP)
 
 ```
@@ -187,7 +188,7 @@ herb_bio_turf_pp_brms %>%
 #adjustment set is the same as above, so extract effects from that model: 
 
 hypothesis(herb_bio_turf_pp_brms, "turf_prop_c>0") 
-#-0.77	1.34	-2.93	1.44	0.37	0.27		
+#-0.75	1.37	-2.99	1.48	0.39	0.28		
 #if anything, evidence for NEGATIVE effect
 
 herb_bio_turf_pp_brms %>%
@@ -197,7 +198,7 @@ herb_bio_turf_pp_brms %>%
 herb_bio_turf_pp_brms %>%
   spread_draws(b_turf_prop_c) %>%
   median_hdi(exp(b_turf_prop_c/10))
-#0.924464	0.6896171	1.181382			0.95	median	hdi
+#0.9282778	0.6867935	1.193202				0.95	median	hdi
 
 #because Y is log-transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
 #but estimates are crazy because increase in proportional turf by 1 unit is super high, so divide to make it .1 proportional increase (so 10% increase):
@@ -219,20 +220,20 @@ herb_bio_turf_pp_brms %>%
 print(herb_prod_turf_pp_brms)
 
 hypothesis(herb_prod_turf_pp_brms, "turf_n15_c>0") 
-#-0.17	0.82	-1.33	1.06	0.64	0.39		
+#-0.19	0.77	-1.34	1	0.54	0.35		
 #yup, not much evidence for direct effect, and if anything it's negative
 
 
 herb_prod_turf_pp_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
-
+#-0.209854	-1.79404	1.362512	
 
 #because Y is log-transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
 herb_prod_turf_pp_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(exp(b_turf_n15_c))
-#0.8412954	0.0005352696	2.896202	
+#0.8107026	0.02903053	2.786183	
 
 
 ###total effect-----
@@ -249,7 +250,7 @@ pp_check(herb_prod_n15_total_brms) #looks good
 plot(herb_prod_n15_total_brms, ask = FALSE) #looks good
 
 hypothesis(herb_prod_n15_total_brms, "turf_n15_c>0") 
-#0.18	0.32	-0.35	0.66	2.98	0.75
+#0.15	0.36	-0.42	0.68	2.55	0.72	
 #some evidence for positive total effect
 
 
@@ -257,14 +258,15 @@ hypothesis(herb_prod_n15_total_brms, "turf_n15_c>0")
 herb_prod_n15_total_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
+#0.1593584	-0.5282447	0.8718815	
 
 #because Y is log-transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
 herb_prod_n15_total_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(exp(b_turf_n15_c))
-#1.210853	0.5287744	2.032827				0.95	  0.95	median	hdi
+#1.172758	0.4630599	2.140552				0.95	  0.95	median	hdi
 
-#so each 1 unit increase in turf n15, herbivore productivity increases by a factor of 1.21. 
+#so each 1 unit increase in turf n15, herbivore productivity increases by a factor of 1.17. 
 #Previous result was 1.14 at 0.72 PP, so quite similar but actually slightly stronger effect here. 
 
 
@@ -280,19 +282,21 @@ herb_prod_n15_total_brms %>%
 print(herb_bio_turf_pp_brms)
 
 hypothesis(herb_bio_turf_pp_brms, "turf_n15_c>0") 
-#0.09	0.99	-1.4	1.65	1.17	0.54	
+#0.03	1.03	-1.48	1.6	1.07	0.52		
 #yup, really no evidence for direct effect
 
 
 herb_bio_turf_pp_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
+#0.0314938	-1.882978	2.204899	
+
 
 #because Y is log-transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
 herb_bio_turf_pp_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(exp(b_turf_n15_c))
-#1.081328	0.001896154	5.216385	
+#1.031995	0.0007819713	4.952974	
 
 
 
@@ -310,7 +314,7 @@ pp_check(herb_bio_n15_total_brms) #looks good
 plot(herb_bio_n15_total_brms, ask = FALSE) #looks good
 
 hypothesis(herb_bio_n15_total_brms, "turf_n15_c>0") 
-#0.44	0.39	-0.2	1.06	7.7	0.89			
+#0.41	0.45	-0.28	1.14	5.5	0.85				
 #so pretty strong evidence for positive effect. 
 
 
@@ -318,14 +322,15 @@ hypothesis(herb_bio_n15_total_brms, "turf_n15_c>0")
 herb_bio_n15_total_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
+#0.4064037	-0.4528273	1.355035	
 
 #because Y is log-transformed: an increase of one unit in X is associated with a change in the median of Y by a factor of exp(B)
 herb_bio_n15_total_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(exp(b_turf_n15_c))
-#1.557848	0.5732776	3.013945					0.95	  0.95	median	hdi
+#1.501409	0.4075171	3.235892						0.95	  0.95	median	hdi
 
-#so each 1 unit increase in turf n15, herbivore biomass increases by a factor of 1.56 
+#so each 1 unit increase in turf n15, herbivore biomass increases by a factor of 1.5
 #Previous result was 1.53 (PP = 0.91) so quite similar. 
 
 ```
@@ -404,10 +409,6 @@ herb.prod.pp.plot.with.inset <-
   draw_plot(herb_prod_pp_post_plot, x = 0.6, y = .07, width = .35, height = .35)
 herb.prod.pp.plot.with.inset
 
-#Save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/figure4a_herbivore_productivity_vs_turf_productivity.png", 
-#       plot = herb.prod.pp.plot.with.inset,     width = 11,      height = 7.5,      units = "cm",      dpi = 300)
-
 
 ```
 
@@ -483,11 +484,6 @@ herb.bio.pp.plot.with.inset <-
   draw_plot(herb_bio_pp_post_plot, x = 0.6, y = .07, width = .35, height = .35)
 herb.bio.pp.plot.with.inset
 
-#Save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/figure4b_herbivore_biomass_vs_turf_productivity.png", 
-#      plot = herb.bio.pp.plot.with.inset,     width = 11,      height = 7.5,      units = "cm",      dpi = 300)
-
-
 ```
 
 #plots for turf cover vs. herbivore productivity
@@ -540,8 +536,7 @@ herb_prod_turf_pp_brms %>%
   theme_bw() + 
   xlab("")+
   ylab("")+
- # scale_x_continuous( breaks=c(0,1,2), labels =c("0.0", "1.0", "2.0"))+
- # scale_x_continuous(breaks=seq(-.5, .5,.5))+
+  scale_x_continuous(breaks=c(-5, 0,5))+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(), 
@@ -561,14 +556,6 @@ herb.prod.cover.plot.with.inset <-
   draw_plot(herb_prod_cover_part_plot) +
   draw_plot(herb_prod_cover_post_plot, x = 0.6, y = .64, width = .35, height = .35)
 herb.prod.cover.plot.with.inset
-
-#Save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/figure4c_herbivore_productivity_vs_turf_cover.png", 
-#       plot = herb.prod.cover.plot.with.inset,
-#       width = 11,
-#       height = 7.5,
-#       units = "cm",
-#       dpi = 300)
 
 
 ```
@@ -649,15 +636,6 @@ herb.bio.cover.plot.with.inset <-
 herb.bio.cover.plot.with.inset
 
 
-# Can save the plot with ggsave()
-#ggsave(filename = "../outputs/figures/figure4d_herbivore_biomass_vs_turf_cover.png", 
-#       plot = herb.bio.cover.plot.with.inset,
-#       width = 11,
-#       height = 7.5,
-#       units = "cm",
-#       dpi = 300)
-
-
 ```
 
 
@@ -676,23 +654,9 @@ fig4<-herb.prod.pp.plot.with.inset   + herb.bio.pp.plot.with.inset + plot_spacer
    plot_layout(heights = c(1, .05, 1)) & theme(plot.background = element_rect(fill = "white",color = "white"), rect = element_rect(fill = "white",color = "white")) #png saving adds weird borders to plots, but re-setting overall theme to white here solves it
 fig4
 
-ggsave(filename = "../outputs/figures/figure4_combined.png", 
-       plot = fig4,
-       width = 25, 
-       height = 22,
-       units = "cm",
-       dpi = 300)
 
 
-
-ggsave(filename = "../outputs/figures/figure4_combined.pdf", 
-       plot = fig4,
-       width = 25, 
-       height = 22,
-       units = "cm",
-       dpi = 300)
-
-
+#ggsave(filename = "../outputs/figures/R/fig_4.pdf",   plot = fig4,   width = 25,   height = 22,     units = "cm",    dpi = 300)
 
 
 ```
@@ -751,7 +715,7 @@ herb_prod_turf_pp_brms %>%
   theme_bw() + 
   xlab("")+
   ylab("")+
- # scale_x_continuous(limits=c(-2.5, 3), breaks=seq(-2, 3,1))+
+  scale_x_continuous(breaks=seq(-4, 4,2))+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(), 
@@ -764,7 +728,7 @@ herb_prod_turf_pp_brms %>%
 herb_prod_nutr_post_plot
 
 
-##combine and save---------
+##combine---------
 ##make inset plots, then combine and save:
 herb.prod.nutr.plot.with.inset <-
   ggdraw() +
@@ -824,7 +788,7 @@ herb_prod_n15_total_brms %>%
   theme_bw() + 
   xlab("")+
   ylab("")+
- # scale_x_continuous(limits=c(-2.5, 3), breaks=seq(-2, 3,1))+
+  scale_x_continuous(breaks=c(-2, -1, 0, 1, 2))+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(), 
@@ -910,7 +874,7 @@ herb_bio_turf_pp_brms %>%
 herb_bio_nutr_post_plot
 
 
-##combine and save---------
+##combine---------
 ##make inset plots, then combine and save:
 herb.bio.nutr.plot.with.inset <-
   ggdraw() +
@@ -969,7 +933,7 @@ herb_bio_n15_total_brms %>%
   theme_bw() + 
   xlab("")+
   ylab("")+
- # scale_x_continuous(limits=c(-2.5, 3), breaks=seq(-2, 3,1))+
+  scale_x_continuous(breaks=c(-2, -1, 0, 1, 2))+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
         strip.background = element_blank(), 
@@ -982,7 +946,7 @@ herb_bio_n15_total_brms %>%
 herb_bio_nutr_post_plot_total
 
 
-##combine and save---------
+##combine---------
 ##make inset plots, then combine and save:
 herb.bio.nutr.plot.with.inset.total <-
   ggdraw() +
@@ -995,7 +959,7 @@ herb.bio.nutr.plot.with.inset.total
 ```
 
 
-##combine and save all 4 panels of figure 6:
+##combine and save all 4 panels of figure 5:
 ```{r}
 #total:
 herb.bio.nutr.plot.with.inset.total
@@ -1004,35 +968,17 @@ herb.prod.nutr.plot.with.inset.total
 herb.bio.nutr.plot.with.inset
 herb.prod.nutr.plot.with.inset
 
-fig6<-plot_grid(herb.prod.nutr.plot.with.inset, herb.bio.nutr.plot.with.inset, herb.prod.nutr.plot.with.inset.total, herb.bio.nutr.plot.with.inset.total) #, labels = c("(a) Turf productivity", "(b) Turf cover"),
-               #label_size = 12, label_fontface = "plain", # hjust = -1,   vjust = 1,
-              #  scale = .95)
-fig6
 
-
-##actually, works better with patchwork to allow white space between rows:----
+##works better with patchwork to allow white space between rows:----
 library(patchwork)
-fig6<-herb.prod.nutr.plot.with.inset   + herb.bio.nutr.plot.with.inset + plot_spacer() +   plot_spacer() + herb.prod.nutr.plot.with.inset.total  + herb.bio.nutr.plot.with.inset.total + plot_layout(ncol = 2) + 
+fig5<-herb.prod.nutr.plot.with.inset   + herb.bio.nutr.plot.with.inset + plot_spacer() +   plot_spacer() + herb.prod.nutr.plot.with.inset.total  + herb.bio.nutr.plot.with.inset.total + plot_layout(ncol = 2) + 
    plot_layout(heights = c(1, .05, 1)) & theme(plot.background = element_rect(fill = "white",color = "white"), rect = element_rect(fill = "white",color = "white")) #png saving adds weird borders to plots, but re-setting overall theme to white here solves it
-fig6
-
-ggsave(filename = "../outputs/figures/figure6_combined.png", 
-       plot = fig6,
-       width = 25, 
-       height = 22,
-       units = "cm",
-       dpi = 300)
+fig5
 
 
 
-ggsave(filename = "../outputs/figures/figure6_combined.pdf", 
-       plot = fig6,
-       width = 25, 
-       height = 22,
-       units = "cm",
-       dpi = 300)
 
-
+#ggsave(filename = "../outputs/figures/R/fig_5.pdf",   plot = fig5,   width = 25,       height = 22,    units = "cm",    dpi = 300)
 
 
 ```
@@ -1057,26 +1003,26 @@ herb_prod_turf_pp_alt_brms<-
   iter = 3000, warmup = 1000, chains = 4, cores = 4,
    control = list(adapt_delta = 0.999, max_treedepth = 15), 
       file = "../outputs/brms/herb_prod_turf_pp_alt_brms") #all good
-print(herb_prod_turf_pp_alt_brms) #worked, just 4 divergent
+print(herb_prod_turf_pp_alt_brms) #worked, just 3 divergent
 
 pp_check(herb_prod_turf_pp_alt_brms) #looks good
 plot(herb_prod_turf_pp_alt_brms, ask = FALSE) #looks good
 
 hypothesis(herb_prod_turf_pp_alt_brms, "turf_productivity_c>0") 
-#4.9	13.91	-15.2	25.06	2.75	0.73	
+#4.27	15.07	-17.24	23.42	2.68	0.73		
 #slightly stronger effect than in original DAG. 
 
 herb_prod_turf_pp_alt_brms %>%
   spread_draws(b_turf_productivity_c) %>%
   median_hdi(b_turf_productivity_c/10)
-
+#0.4383921	-2.679239	3.133425	
 
 herb_prod_turf_pp_alt_brms %>%
   spread_draws(b_turf_productivity_c) %>%
   median_hdi(exp(b_turf_productivity_c/10))
-#1.627505	5.880498e-06	12.26595			0.95	  0.95	median	hdi
+#1.550213	0.000000127037	10.42564				0.95	  0.95	median	hdi
 
-#so each .1 mm/day increase in turf growth rate, herbivore productivity increases by a factor of 1.63
+#so each .1 mm/day increase in turf growth rate, herbivore productivity increases by a factor of 1.55
 
 ```
 
@@ -1100,19 +1046,20 @@ plot(herb_bio_turf_pp_alt_brms, ask = FALSE) #looks good
 
 
 hypothesis(herb_bio_turf_pp_alt_brms, "turf_productivity_c>0") 
-#5.37	21.43	-26.79	35.99	2.02	0.67	
+#6.01	20.56	-24.79	35.93	2.29	0.7	
 #similar to original DAG
 
 
 herb_bio_turf_pp_alt_brms %>%
   spread_draws(b_turf_productivity_c) %>%
   median_hdi(b_turf_productivity_c/10)
-#0.5820589	-4.059838	4.404372
+#0.6202969 -3.535837 5.052343
+
 
 herb_bio_turf_pp_alt_brms %>%
   spread_draws(b_turf_productivity_c) %>%
   median_hdi(exp(b_turf_productivity_c/10))
-#1.789719	5.298899e-08	36.57011				0.95	  0.95	median	hdi
+#1.85948	0.000004405571	36.35991				0.95	  0.95	median	hdi
 
 ```
 
@@ -1139,26 +1086,26 @@ pp_check(turf_cover_herb_prod_total_alt_brms) #looks good
 plot(turf_cover_herb_prod_total_alt_brms, ask = FALSE) #looks good
 
 hypothesis(turf_cover_herb_prod_total_alt_brms, "log_herb_prod_c<0") 
-#-0.56	0.49	-1.37	0.22	7.25	0.88	
+#-0.55	0.49	-1.34	0.26	7.18	0.88	
 
 
 ##extract effects-----
 turf_cover_herb_prod_total_alt_brms %>%
   spread_draws(b_log_herb_prod_c) %>%
   median_hdi(b_log_herb_prod_c)
-
+#-0.5588986	-1.54744	0.429468	
 
 #because both X and Y are log-transformed: a doubling of X is associated with a change in the median of Y by a factor of 2^B
 turf_cover_herb_prod_total_alt_brms %>%
   spread_draws(b_log_herb_prod_c) %>%
   median_hdi(2^(b_log_herb_prod_c))
-#0.6812666	0.2910087	1.208226					0.95	  0.95	median	hdi
+#0.6788202	0.2926694	1.246561					0.95	  0.95	median	hdi
 
 #so for each doubling of herbivore biomass, prop turf cover changes by a factor of 0.69....
 
-1-0.6812666 # 0.3187334 31.87% reduction
-1-0.2910087 #0.7089913 70.90% reduction
-1.208226 - 1 #0.208226 20.82% increase
+1-0.6788202 # 0.3211798 32.11% reduction
+1-0.2926694 #0.7073306 70.73% reduction
+1.246561 - 1 #0.246561 24.66% increase
 
 ```
 
@@ -1191,7 +1138,7 @@ hypothesis(turf_cover_herb_bio_total_alt_brms, "log_herb_bio_c<0")
 turf_cover_herb_bio_total_alt_brms %>%
   spread_draws(b_log_herb_bio_c) %>%
   median_hdi(b_log_herb_bio_c)
-
+#-0.4918272	-1.430274	0.4699164	
 
 #because both X and Y are log-transformed: a doubling of X is associated with a change in the median of Y by a factor of 2^B
 
@@ -1236,7 +1183,7 @@ pp_check(herb_prod_n15_direct_alt_brms) #looks good
 plot(herb_prod_n15_direct_alt_brms, ask = FALSE) #looks good
 
 hypothesis(herb_prod_n15_direct_alt_brms, "turf_n15_c>0") 
-#-0.13	0.74	-1.25	1.03	0.69	0.41	
+#-0.1	0.81	-1.19	1.07	0.68	0.4	
 #quite similar to original dag - not much effect of turf n15 on herbivore prod. 
 
 
@@ -1244,12 +1191,12 @@ hypothesis(herb_prod_n15_direct_alt_brms, "turf_n15_c>0")
 herb_prod_n15_direct_alt_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
-
+#-0.12646	-1.616717	1.468936	
 
 herb_prod_n15_direct_alt_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(exp(b_turf_n15_c))
-#0.8623611	0.0131274	2.795977	
+#0.8812094	0.001325267	2.939937	
 
 ##biomass: direct----
 herb_bio_n15_direct_alt_brms<-
@@ -1267,18 +1214,18 @@ pp_check(herb_bio_n15_direct_alt_brms) #looks good
 plot(herb_bio_n15_direct_alt_brms, ask = FALSE) #looks good
 
 hypothesis(herb_bio_n15_direct_alt_brms, "turf_n15_c>0") 
-#0.13	0.99	-1.39	1.62	1.31		0.57	
+#0.13	1.07	-1.4	1.75	1.27	0.56
 
 ##extract effects-----
 herb_bio_n15_direct_alt_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(b_turf_n15_c)
-#0.1298932	-1.865465	2.108835	
+#0.123551	-1.948157	2.236172	
 
 herb_bio_n15_direct_alt_brms %>%
   spread_draws(b_turf_n15_c) %>%
   median_hdi(exp(b_turf_n15_c))
-#1.138707	0.00215411	5.070375	
+#1.131508	0.00000118388	5.74867	
 
 
 ```
@@ -1294,7 +1241,7 @@ turf_cover_nutrients_brms<-readRDS(file = "../outputs/brms/turf_cover_nutrients_
 print(turf_cover_nutrients_brms)
 
 hypothesis(turf_cover_nutrients_brms, "turf_n15_c<0") 
-#-0.39	0.42	-1.06	0.3	5.31	0.84	
+#-0.38	0.41	-1.01	0.27	5.66	0.85	
 #so just opposite of previous one where tested for positive effect of turf n15 on turf cover
 
 
@@ -1329,7 +1276,7 @@ herb_prod_turf_pp_alt_brms %>%
 herb_prod_turf_pp_plot_alt
 
 #Save the plot with ggsave()
-ggsave(filename = "../outputs/figures/herb_prod_turf_pp_plot_alt.pdf", plot = herb_prod_turf_pp_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_6c.pdf", plot = herb_prod_turf_pp_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
 
 
 
@@ -1358,7 +1305,7 @@ herb_bio_turf_pp_alt_brms %>%
 herb_bio_turf_pp_plot_alt
 
 #Save the plot with ggsave()
-ggsave(filename = "../outputs/figures/herb_bio_turf_pp_plot_alt.pdf", plot = herb_bio_turf_pp_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_6d.pdf", plot = herb_bio_turf_pp_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
 
 
 ###effects of herbivore prod on turf cover:-----
@@ -1385,7 +1332,7 @@ turf_cover_herb_prod_total_alt_brms %>%
 turf_cover_herb_prod_post_plot_alt
 
 #Save the plot with ggsave()
-ggsave(filename = "../outputs/figures/turf_cover_herb_prod_post_plot_alt.pdf", plot = turf_cover_herb_prod_post_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_6e.pdf", plot = turf_cover_herb_prod_post_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
 
 
 
@@ -1401,6 +1348,7 @@ turf_cover_herb_bio_total_alt_brms %>%
   theme_bw() + 
   xlab("")+
   ylab("")+
+  scale_x_continuous(breaks = c(-2,-1,0,1))+
   #ggtitle("effect of turf nutrients on turf productivity")+
   theme(panel.grid.major = element_blank(), # remove gridlines
         panel.grid.minor = element_blank(), #remove gridlines
@@ -1414,91 +1362,7 @@ turf_cover_herb_bio_total_alt_brms %>%
 turf_cover_herb_bio_post_plot_alt
 
 #Save the plot with ggsave()
-ggsave(filename = "../outputs/figures/turf_cover_herb_bio_post_plot_alt.pdf", plot = turf_cover_herb_bio_post_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
-
-
-
-###effects of turf n15 on turf cover:-----
-turf_cover_turfn15_plot_alt<-
-turf_cover_nutrients_brms %>%
-  spread_draws(b_turf_n15_c) %>%
-  ggplot(aes(y = 0, x = b_turf_n15_c, fill = after_stat(x < 0))) +
-  stat_halfeye(point_interval=median_hdi, .width=c(.95, .5), fatten_point = 1, slab_alpha = 0.6) +
-  scale_fill_manual(values = alpha(c("#d0e2af" ,"#e89c81"),1)) +#PNW color palette
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  theme_bw() + 
-  xlab("")+
-  ylab("")+
-  #ggtitle("effect of turf nutrients on turf productivity")+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(), 
-        legend.position = "none",  
-        rect = element_rect(fill = "transparent"),  
-        plot.background = element_rect(fill = "transparent", color = NA),
-        text=element_text(size=10,  family="sans"),
-          axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-turf_cover_turfn15_plot_alt
-
-#Save the plot with ggsave()
-ggsave(filename = "../outputs/figures/turf_cover_turfn15_plot_alt.pdf", plot = turf_cover_turfn15_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
-
-
-###effects of turf n15 on herb prod:-----
-herb_prod_turfn15_total_plot_alt<-
-herb_prod_n15_total_brms %>%
-  spread_draws(b_turf_n15_c) %>%
-  ggplot(aes(y = 0, x = b_turf_n15_c, fill = after_stat(x < 0))) +
-  stat_halfeye(point_interval=median_hdi, .width=c(.95, .5), fatten_point = 1, slab_alpha = 0.6) +
-  scale_fill_manual(values = alpha(c("#d0e2af" ,"#e89c81"),1)) +#PNW color palette
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  theme_bw() + 
-  xlab("")+
-  ylab("")+
-  #ggtitle("effect of turf nutrients on turf productivity")+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(), 
-        legend.position = "none",  
-        rect = element_rect(fill = "transparent"),  
-        plot.background = element_rect(fill = "transparent", color = NA),
-        text=element_text(size=10,  family="sans"),
-          axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-herb_prod_turfn15_total_plot_alt
-
-#Save the plot with ggsave()
-ggsave(filename = "../outputs/figures/herb_prod_turfn15_total_plot_alt.pdf", plot = herb_prod_turfn15_total_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
-
-
-
-
-###effects of turf n15 on herb bio:-----
-herb_bio_turfn15_total_plot_alt<-
-herb_bio_n15_total_brms %>%
-  spread_draws(b_turf_n15_c) %>%
-  ggplot(aes(y = 0, x = b_turf_n15_c, fill = after_stat(x < 0))) +
-  stat_halfeye(point_interval=median_hdi, .width=c(.95, .5), fatten_point = 1, slab_alpha = 0.6) +
-  scale_fill_manual(values = alpha(c("#d0e2af" ,"#e89c81"),1)) +#PNW color palette
-  geom_vline(xintercept = 0, linetype = "dashed") +
-  theme_bw() + 
-  xlab("")+
-  ylab("")+
-  #ggtitle("effect of turf nutrients on turf productivity")+
-  theme(panel.grid.major = element_blank(), # remove gridlines
-        panel.grid.minor = element_blank(), #remove gridlines
-        strip.background = element_blank(), 
-        legend.position = "none",  
-        rect = element_rect(fill = "transparent"),  
-        plot.background = element_rect(fill = "transparent", color = NA),
-        text=element_text(size=10,  family="sans"),
-          axis.text.y = element_blank(),
-        axis.ticks.y = element_blank())
-herb_bio_turfn15_total_plot_alt
-
-#Save the plot with ggsave()
-ggsave(filename = "../outputs/figures/herb_bio_turfn15_total_plot_alt.pdf", plot = herb_bio_turfn15_total_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
+#ggsave(filename = "../outputs/figures/R/fig_6f.pdf", plot = turf_cover_herb_bio_post_plot_alt,  width = 8,   height = 5,  units = "cm", dpi = 300)
 
 
 ```
